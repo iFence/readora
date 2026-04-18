@@ -1,0 +1,10 @@
+node_modules
+.pnpm-store/
+.idea/
+dist/
+.DS_Store
+*.log
+coverage/
+apps/readora-app/dist/
+apps/readora-app/src-tauri/target/
+apps/readora-app/src-tauri/gen/schemas/

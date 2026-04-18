@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <style>
+          .titlebar {
+              display: flex;
+              align-items: center;
+              justify-content: flex-start;
+              box-sizing: border-box;
+              padding-left: 10px;
+              overflow: hidden;
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              z-index: 4000;
+          }
+          body[data-window-chrome="false"] .titlebar {
+              display: none;
+          }
+
+          .titlebar-button {
+              display: inline-flex;
+              justify-content: center;
+              align-items: center;
+              width: 26px;
+              height: 26px;
+              flex: 0 0 26px;
+              position: relative;
+              overflow: hidden;
+              line-height: 0;
+              user-select: none;
+              -webkit-user-select: none;
+          }
+          .marker-container {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              width: max-content;
+              min-width: max-content;
+              padding: 0;
+              white-space: nowrap;
+              flex-wrap: nowrap;
+              flex: 0 0 auto;
+          }
+          .marker-container:hover {
+                cursor: pointer;
+          }
+
+          .titlebar-button svg {
+              position: absolute;
+              left: 50%;
+              top: 50%;
+              width: 16px;
+              height: 16px;
+              transform: translate(-50%, -50%);
+              display: block;
+              pointer-events: none;
+          }
+
+          /* 默认显示_default.svg */
+          .titlebar-button svg[class$="default"] {
+              display: block;
+          }
+
+          .titlebar-button svg[class$="hover"] {
+              display: none;
+          }
+
+          /* 悬停时显示_hover.svg */
+          .marker-container:hover .titlebar-button svg[class$="default"] {
+              display: none;
+          }
+          .marker-container:hover .titlebar-button svg[class$="hover"] {
+              display: block;
+          }
+      </style>
+
+      <title>readora</title>
+  </head>
+  <body>
+  <div data-tauri-drag-region class="titlebar">
+      <div class="marker-container">
+          <div class="titlebar-button" id="titlebar-close">
+              <svg class="close_default" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="8333" width="200" height="200"><path d="M512.298624 1.023829a511.488085 511.488085 0 1 0 0 1022.976171 511.488085 511.488085 0 0 0 0-1022.976171z" fill="#F55656" p-id="8334"></path></svg>
+              <svg  class="close_hover" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="8168" width="200" height="200"><path d="M512.298624 1.023829a511.488085 511.488085 0 1 0 0 1022.976171 511.488085 511.488085 0 0 0 0-1022.976171z" fill="#F55656" p-id="8169"></path><path d="M567.158814 511.914681l189.152475 188.299283c15.186802 15.35744 15.528079 39.929345 0.682552 55.628062a37.796367 37.796367 0 0 1-54.348275 0.853191L511.957348 566.774871 321.269129 756.780537a37.796367 37.796367 0 0 1-54.348275-0.767872 40.099983 40.099983 0 0 1 0.767872-55.713382L456.755881 511.914681 267.688726 323.615397a40.099983 40.099983 0 0 1-0.767872-55.542742 37.796367 37.796367 0 0 1 54.348275-0.853192L511.957348 456.969172 702.645566 267.048825a37.796367 37.796367 0 0 1 54.433595 0.767872 40.099983 40.099983 0 0 1-0.853192 55.713381L567.244133 511.914681z" fill="#2A2F3C" p-id="8170"></path></svg>
+          </div>
+          <div class="titlebar-button" id="titlebar-minimize">
+              <svg class="mini_default" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="8991" width="200" height="200"><path d="M512.298624 1.023829a511.488085 511.488085 0 1 0 0 1022.976171 511.488085 511.488085 0 0 0 0-1022.976171z" fill="#FFBF2F" p-id="8992"></path></svg>
+              <svg class="mini_hover" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="8826" width="200" height="200"><path d="M511.573333 0a511.573333 511.573333 0 1 0 0 1023.146667 511.573333 511.573333 0 0 0 0-1023.146667z" fill="#FFBF2F" p-id="8827"></path><path d="M170.666667 469.333333m46.933333 0l588.8 0q46.933333 0 46.933333 46.933334l0 0q0 46.933333-46.933333 46.933333l-588.8 0q-46.933333 0-46.933333-46.933333l0 0q0-46.933333 46.933333-46.933334Z" fill="#2A2F3C" p-id="8828"></path></svg>
+          </div>
+          <div class="titlebar-button" id="titlebar-maximize">
+              <svg class="unfold_hover" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="8661" width="200" height="200"><path d="M511.573333 0a511.573333 511.573333 0 1 0 0 1023.146667 511.573333 511.573333 0 0 0 0-1023.146667z" fill="#44C69D" p-id="8662"></path><path d="M253.184 560.384c17.237333 0 31.232 14.08 31.232 31.317333v114.602667l165.802667-165.802667a31.317333 31.317333 0 1 1 44.202666 44.202667L331.093333 748.117333h109.738667a31.317333 31.317333 0 1 1 0 62.549334h-187.733333a31.317333 31.317333 0 0 1-31.232-31.317334V591.701333c0-17.237333 13.994667-31.232 31.317333-31.232zM589.653333 213.333333h187.733334c17.237333 0 31.232 13.994667 31.232 31.317334v187.648a31.317333 31.317333 0 0 1-62.549334 0V317.610667L580.266667 483.498667a31.317333 31.317333 0 0 1-44.202667-44.202667l163.328-163.413333H589.653333a31.317333 31.317333 0 1 1 0-62.549334z" fill="#2A2F3C" p-id="8663"></path></svg>
+              <svg class="unfold_default" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="8497" width="200" height="200"><path d="M511.573333 0a511.573333 511.573333 0 1 0 0 1023.146667 511.573333 511.573333 0 0 0 0-1023.146667z" fill="#44C69D" p-id="8498"></path></svg>
+          </div>
+      </div>
+  </div>
+  <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

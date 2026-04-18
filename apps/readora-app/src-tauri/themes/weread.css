@@ -1,0 +1,46 @@
+:root {
+    color-scheme: light;
+
+    --accent: #486fa8;
+    --accent-hover: #3d6190;
+    --accent-pressed: #314d73;
+    --accent-soft: rgba(72, 111, 168, 0.14);
+    --accent-contrast: #ffffff;
+
+    --surface-app: #edf1f5;
+    --surface-panel: #f7f9fc;
+    --surface-panel-muted: #e7ecf3;
+    --surface-elevated: #ffffff;
+    --surface-overlay: #222935;
+    --surface-hover: #eef3f8;
+    --surface-active: #dde7f5;
+    --surface-reader: #f6f0e3;
+    --surface-reader-sidebar: #f1eadb;
+
+    --text-primary: #2d3745;
+    --text-secondary: #5c697b;
+    --text-muted: #7f8b9c;
+    --text-on-overlay: #f7f9fc;
+
+    --border-subtle: rgba(45, 55, 69, 0.12);
+    --border-strong: rgba(45, 55, 69, 0.22);
+    --shadow-sm: 0 10px 30px rgba(23, 35, 56, 0.08);
+    --shadow-md: 0 20px 52px rgba(23, 35, 56, 0.14);
+
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: rgba(92, 105, 123, 0.28);
+    --scrollbar-thumb-hover: rgba(92, 105, 123, 0.42);
+    --selection-bg: rgba(72, 111, 168, 0.18);
+    --selection-text: var(--text-primary);
+
+    --reader-page-number: var(--text-muted);
+    --reader-divider: var(--border-subtle);
+    --reader-toolbar-shadow: var(--shadow-sm);
+    --reader-body-max-width: 840px;
+    --reader-font-size: 16px;
+    --reader-letter-spacing: 0.02em;
+
+    --highlight-yellow: rgba(243, 220, 105, 0.5);
+    --highlight-red: rgba(229, 111, 126, 0.4);
+    --highlight-blue: rgba(114, 160, 220, 0.38);
+}
