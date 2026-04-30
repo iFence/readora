@@ -21,9 +21,11 @@ export async function openReaderBookFlow({
     lastLocation: readerBook.readProgress.value?.cfi ?? null,
     showTextStart: true,
   });
-  await viewport.buildPaginationIndex({
+  void viewport.buildPaginationIndex({
     bookUrl,
     readerStyleOptions,
+  }).then(() => {
+    viewport.syncPageNumberVisibility();
   });
   viewport.syncPageNumberVisibility();
 }

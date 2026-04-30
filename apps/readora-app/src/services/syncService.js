@@ -2,7 +2,11 @@ import { getBookKey } from '@/entities/models.js';
 import { libraryRepository } from '@/services/libraryRepository.js';
 import { exportSyncSnapshot, getLastSyncAt, importSyncSnapshot, setLastSyncAt } from '@/platform/tauri/dataBridge.js';
 import { saveSyncStatus, loadSyncStatus } from '@/services/syncStatusService.js';
-import { createConfiguredWebDavClient } from '@/services/webdavService.js';
+import { createConfiguredWebDavClient, loadWebDavConfig } from '@/services/webdavService.js';
+
+export const SYNC_COMPLETED_EVENT = 'readora:sync-completed';
+
+let activeSyncPromise = null;
 
 function normalizeSnapshot(snapshot = {}) {
   return {
@@ -124,6 +128,38 @@ async function downloadRemoteUpdates(client, localLastSyncAt) {
 }
 
 export async function syncLibrary() {
+  if (activeSyncPromise) {
+    return activeSyncPromise;
+  }
+
+  activeSyncPromise = performLibrarySync();
+  try {
+    return await activeSyncPromise;
+  } finally {
+    activeSyncPromise = null;
+  }
+}
+
+export function dispatchSyncCompleted(detail) {
+  window.dispatchEvent(new CustomEvent(SYNC_COMPLETED_EVENT, { detail }));
+}
+
+export function subscribeToSyncCompleted(listener) {
+  const handler = event => {
+    listener(event.detail);
+  };
+  window.addEventListener(SYNC_COMPLETED_EVENT, handler);
+  return () => {
+    window.removeEventListener(SYNC_COMPLETED_EVENT, handler);
+  };
+}
+
+export async function canSyncLibraryAutomatically() {
+  const config = await loadWebDavConfig();
+  return Boolean(config.url && config.username && config.password);
+}
+
+async function performLibrarySync() {
   const attemptedAt = Date.now();
   const previousStatus = await loadSyncStatus();
   const client = await createConfiguredWebDavClient();
@@ -178,7 +214,13 @@ export async function syncLibrary() {
       errorMessage: '',
     });
 
-    return { books: mergedBooks, status };
+    const result = { books: mergedBooks, status };
+    dispatchSyncCompleted({
+      ok: true,
+      books: mergedBooks,
+      status,
+    });
+    return result;
   } catch (error) {
     const status = await saveSyncStatus({
       ...previousStatus,
@@ -187,6 +229,12 @@ export async function syncLibrary() {
       attemptedAt,
       completedAt: Date.now(),
       errorCategory: classifySyncError(error),
+      errorMessage: error?.message || String(error),
+    });
+    dispatchSyncCompleted({
+      ok: false,
+      books: null,
+      status,
       errorMessage: error?.message || String(error),
     });
     throw Object.assign(error instanceof Error ? error : new Error(String(error)), {

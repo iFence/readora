@@ -143,13 +143,15 @@ export function useReaderSession(bookUrlRef, viewerRef) {
       fontSize: readerFontSize.value,
       lineHeight: readerLineHeight.value,
     });
-    await viewport.buildPaginationIndex({
+    void viewport.buildPaginationIndex({
       bookUrl: bookUrlRef.value,
       readerStyleOptions: {
         forceTextColor: forceReaderTextColor.value,
         fontSize: readerFontSize.value,
         lineHeight: readerLineHeight.value,
       },
+    }).then(() => {
+      viewport.syncPageNumberVisibility();
     });
     viewport.syncPageNumberVisibility();
   }

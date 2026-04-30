@@ -28,6 +28,7 @@ export function useReaderViewport({ foliateView, currentLocation }) {
   let paginationBuildId = 0;
   let lastPaginationBuildOptions = null;
   let layoutRefreshTimer = null;
+  let lastTocPageMapFlushAt = 0;
 
   function getCurrentSectionPageCount(view = foliateView.value) {
     const pageCount = view?.renderer?.pages;
@@ -100,6 +101,34 @@ export function useReaderViewport({ foliateView, currentLocation }) {
     });
   }
 
+  function flushTocPageMap(nextTocPageMap, { buildId, force = false } = {}) {
+    if (buildId !== paginationBuildId) {
+      return;
+    }
+
+    const now = performance.now();
+    if (!force && now - lastTocPageMapFlushAt < 120) {
+      return;
+    }
+
+    lastTocPageMapFlushAt = now;
+    tocPageMap.value = { ...nextTocPageMap };
+  }
+
+  function hasTocAnchor(book, href) {
+    if (!href) {
+      return false;
+    }
+
+    if (typeof book?.splitTOCHref === 'function') {
+      const parts = book.splitTOCHref(href);
+      return Array.isArray(parts) && parts.length > 1 && parts[1] != null && parts[1] !== '';
+    }
+
+    const [, anchor] = href.split('#');
+    return anchor != null && anchor !== '';
+  }
+
   async function buildPaginationIndex({ bookUrl, readerStyleOptions } = {}) {
     const view = foliateView.value;
     if (!bookUrl || !view || layout.value !== 'paginated') {
@@ -123,6 +152,10 @@ export function useReaderViewport({ foliateView, currentLocation }) {
       applyPaginationIndexCacheEntry(cachedEntry);
       return;
     }
+
+    paginationIndex = null;
+    tocPageMap.value = {};
+    lastTocPageMapFlushAt = 0;
 
     const host = document.createElement('div');
     host.setAttribute('aria-hidden', 'true');
@@ -150,10 +183,54 @@ export function useReaderViewport({ foliateView, currentLocation }) {
       const sectionStarts = [];
       const sectionCounts = [];
       let total = 0;
+      const flatToc = [];
+      const flattenToc = items => {
+        for (const item of items ?? []) {
+          flatToc.push(item);
+          flattenToc(item.subitems);
+        }
+      };
+      flattenToc(book.toc ?? []);
+
+      const tocSectionStarts = new Map();
+      const anchoredTocHrefs = [];
+      const nextTocPageMap = {};
+
+      for (const item of flatToc) {
+        if (!item?.href) {
+          continue;
+        }
+
+        let resolvedTarget = null;
+        try {
+          resolvedTarget = await Promise.resolve(book.resolveHref?.(item.href));
+        } catch (error) {
+          console.warn(`Failed to resolve TOC target for ${item.href}`, error);
+        }
+
+        if (resolvedTarget?.index == null) {
+          continue;
+        }
+
+        if (hasTocAnchor(book, item.href)) {
+          anchoredTocHrefs.push(item.href);
+          continue;
+        }
+
+        const sectionHrefList = tocSectionStarts.get(resolvedTarget.index) ?? [];
+        sectionHrefList.push(item.href);
+        tocSectionStarts.set(resolvedTarget.index, sectionHrefList);
+      }
 
       for (let index = 0; index < book.sections.length; index += 1) {
         const section = book.sections[index];
         sectionStarts[index] = total;
+        const sectionStartPage = Math.max(1, total + 1);
+        const sectionHrefList = tocSectionStarts.get(index) ?? [];
+        for (const href of sectionHrefList) {
+          nextTocPageMap[href] = sectionStartPage;
+        }
+        flushTocPageMap(nextTocPageMap, { buildId });
 
         if (section?.linear === 'no') {
           sectionCounts[index] = 0;
@@ -169,23 +246,13 @@ export function useReaderViewport({ foliateView, currentLocation }) {
       }
 
       const hiddenSlotCount = getVisiblePageSlots(hiddenView);
-      const flatToc = [];
-      const flattenToc = items => {
-        for (const item of items ?? []) {
-          flatToc.push(item);
-          flattenToc(item.subitems);
-        }
-      };
-      flattenToc(book.toc ?? []);
-
-      const nextTocPageMap = {};
-      for (const item of flatToc) {
-        if (!item?.href) {
+      for (const href of anchoredTocHrefs) {
+        if (nextTocPageMap[href] != null) {
           continue;
         }
 
         try {
-          await hiddenView.goTo(item.href);
+          await hiddenView.goTo(href);
           await waitForLayout();
 
           const sectionIndex = hiddenView.renderer?.getContents?.()?.[0]?.index;
@@ -193,10 +260,11 @@ export function useReaderViewport({ foliateView, currentLocation }) {
           const sectionStart = sectionIndex != null ? sectionStarts[sectionIndex] : null;
 
           if (sectionStart != null && localPage != null) {
-            nextTocPageMap[item.href] = Math.max(1, sectionStart + localPage);
+            nextTocPageMap[href] = Math.max(1, sectionStart + localPage);
+            flushTocPageMap(nextTocPageMap, { buildId });
           }
         } catch (error) {
-          console.warn(`Failed to resolve TOC page for ${item.href}`, error);
+          console.warn(`Failed to resolve TOC page for ${href}`, error);
         }
       }
 
@@ -218,6 +286,7 @@ export function useReaderViewport({ foliateView, currentLocation }) {
         ...nextPaginationIndex,
         tocPageMap: nextTocPageMap,
       });
+      flushTocPageMap(nextTocPageMap, { buildId, force: true });
     } finally {
       destroyFoliateView(hiddenView);
       host.remove();

@@ -64,7 +64,7 @@
 </template>
 
 <script setup>
-import { computed, onActivated, onMounted, ref } from "vue";
+import { computed, onActivated, onMounted, onUnmounted, ref } from "vue";
 import { NTabs, NTabPane, NButton, NIcon, useMessage } from 'naive-ui';
 import AddIcon from "@/assets/svg/AddIcon.vue";
 import SyncIcon from "@/assets/svg/SyncIcon.vue";
@@ -72,7 +72,7 @@ import BookCard from "@/components/BookCard.vue";
 import { supportsFilePicker } from '@/platform/tauri/capabilities.js';
 import { libraryRepository } from '@/services/libraryRepository.js';
 import { getSyncRecoveryHint, loadSyncStatus } from '@/services/syncStatusService.js';
-import { syncLibrary } from '@/services/syncService.js';
+import { subscribeToSyncCompleted, syncLibrary } from '@/services/syncService.js';
 import { pickAndOpenBook } from '@/services/windowService.js';
 
 const message = useMessage();
@@ -113,6 +113,7 @@ const syncSummary = computed(() => {
 });
 
 const syncHint = computed(() => getSyncRecoveryHint(syncStatus.value));
+let disposeSyncSubscription = null;
 
 async function loadLatestBooks() {
   latestBooks.value = await libraryRepository.getLatestBooks();
@@ -121,6 +122,16 @@ async function loadLatestBooks() {
 onMounted(async () => {
   await loadLatestBooks();
   syncStatus.value = await loadSyncStatus();
+  disposeSyncSubscription = subscribeToSyncCompleted(detail => {
+    if (detail?.books) {
+      latestBooks.value = detail.books;
+    } else {
+      void loadLatestBooks();
+    }
+    if (detail?.status) {
+      syncStatus.value = detail.status;
+    }
+  });
   window.setTimeout(() => {
     void loadLatestBooks();
   }, 400);
@@ -128,6 +139,11 @@ onMounted(async () => {
 
 onActivated(() => {
   void loadLatestBooks();
+});
+
+onUnmounted(() => {
+  disposeSyncSubscription?.();
+  disposeSyncSubscription = null;
 });
 
 async function handleSync() {

@@ -6,7 +6,7 @@
         :placeholder="getShortcutPlaceholder(item)"
         type="text"
         readonly
-        class="shortcut-input"
+        class="shortcut-input settings-input"
         :class="{ 'is-recording': recordingId === item.id, 'is-armed': armedId === item.id }"
         @click="handleInputClick(item)"
       >
@@ -14,7 +14,7 @@
           <button
             v-if="item.shortcut && recordingId !== item.id"
             type="button"
-            class="shortcut-clear"
+            class="shortcut-clear settings-icon-button"
             :title="t('settings.shortcuts.clear')"
             @click.stop="clearShortcut(item.id)"
           >
@@ -191,6 +191,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@import "../settingsControls.css";
+
 .shortcut-control {
   display: flex;
   align-items: center;
@@ -206,23 +208,10 @@ onUnmounted(() => {
 }
 
 .shortcut-clear {
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-tertiary, var(--text-secondary));
-  cursor: pointer;
   line-height: 1;
   font-size: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.shortcut-clear:hover {
-  background-color: var(--surface-hover);
-  color: var(--text-primary);
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
 }
 </style>

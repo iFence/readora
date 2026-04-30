@@ -105,27 +105,23 @@ watch(() => route.fullPath, () => {
   position: fixed;
   left: 0;
   top: 0;
-  width: 22px;
+  width: 0;
   height: var(--app-safe-vh, 100vh);
   z-index: 1080;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-  transition: width 0.24s ease;
-}
-
-.sidebar-container.is-reader .sidebar-trigger {
-  width: 12px;
+  overflow: visible;
 }
 
 .sidebar-trigger::after {
   content: '';
   position: absolute;
-  left: 5px;
+  left: 4px;
   top: calc(var(--app-top-offset, 26px) + 50%);
   transform: translateY(-50%);
-  width: 6px;
+  width: 10px;
   height: 92px;
   border-radius: 999px;
   background: linear-gradient(180deg, var(--surface-panel), var(--surface-panel-muted));
@@ -147,7 +143,7 @@ watch(() => route.fullPath, () => {
   background-color: var(--surface-panel);
   border-right: 1px solid var(--border-subtle);
   top: var(--app-top-offset, 26px);
-  left: -46px;
+  left: -56px;
   position: fixed;
   z-index: 1070;
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -165,15 +161,14 @@ watch(() => route.fullPath, () => {
 
 .sidebar-container:hover .sidebar-trigger::after,
 .sidebar-container.is-open .sidebar-trigger::after {
-  left: 7px;
-  width: 8px;
+  left: 6px;
+  width: 12px;
   opacity: 1;
   background: linear-gradient(180deg, var(--accent-soft), var(--surface-panel-muted));
   border-color: var(--border-strong);
 }
 
 .sidebar-container.is-open .sidebar-trigger {
-  width: 12px;
   z-index: 1060;
 }
 

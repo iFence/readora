@@ -7,6 +7,7 @@ import i18n from './i18n';
 import { initializeWindowLifecycle } from '@/services/windowService.js';
 import { setupGlobalShortcuts } from '@/services/shortcutService.js';
 import { initializeAppShell } from '@/services/appShellService.js';
+import { initializeAutoSyncScheduler } from '@/services/syncSchedulerService.js';
 
 const app = createApp(App);
 app.use(i18n);
@@ -17,3 +18,4 @@ initializeAppShell();
 initializeWindowLifecycle().catch(() => {});
 
 setupGlobalShortcuts().catch(() => {});
+initializeAutoSyncScheduler();

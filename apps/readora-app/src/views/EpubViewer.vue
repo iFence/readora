@@ -118,7 +118,12 @@
     <div v-if="!isCompactReader" class="resizer" @pointerdown="startResize"></div>
 
     <div class="content-area" :class="layout === 'paginated' ? 'paginated-content-area' : 'scrolled-content-area'">
-      <div class="reader-controls-panel" :class="{ compact: isCompactReader }" v-if="showReaderControls">
+      <div
+        v-if="showReaderControls"
+        ref="readerControlsPanel"
+        class="reader-controls-panel"
+        :class="{ compact: isCompactReader }"
+      >
         <div class="reader-controls-title">阅读设置</div>
         <label class="reader-control">
           <span>字体大小</span>
@@ -183,7 +188,12 @@
       >
         书签
       </button>
-      <button type="button" class="tool-icon" @click="toggleReaderControls">
+      <button
+        ref="readerControlsToggle"
+        type="button"
+        class="tool-icon"
+        @click="toggleReaderControls"
+      >
         <a-icon />
       </button>
     </div>
@@ -210,7 +220,7 @@
 </template>
 
 <script setup>
-import { computed, ref, toRef } from 'vue';
+import { computed, onMounted, onUnmounted, ref, toRef } from 'vue';
 import AIcon from "@/assets/svg/AIcon.vue";
 import DoubleColumnIcon from "@/assets/svg/DoubleColumnIcon.vue";
 import NextChapter from "@/assets/svg/NextChapter.vue";
@@ -230,6 +240,8 @@ const props = defineProps({
 });
 
 const viewer = ref(null);
+const readerControlsPanel = ref(null);
+const readerControlsToggle = ref(null);
 const activeSidebarTab = ref('menu');
 const isSidebarDrawerOpen = ref(false);
 const {
@@ -321,6 +333,31 @@ function goToBookmarkAndClose(value) {
 function goBack() {
   navigateBack();
 }
+
+function closeReaderControlsOnOutsidePointer(event) {
+  if (!showReaderControls.value) {
+    return;
+  }
+
+  const target = event.target;
+  if (!(target instanceof Node)) {
+    return;
+  }
+
+  if (readerControlsPanel.value?.contains(target) || readerControlsToggle.value?.contains(target)) {
+    return;
+  }
+
+  showReaderControls.value = false;
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', closeReaderControlsOnOutsidePointer);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('pointerdown', closeReaderControlsOnOutsidePointer);
+});
 </script>
 
 <style>
