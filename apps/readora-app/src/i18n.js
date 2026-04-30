@@ -59,6 +59,9 @@ const messages = {
                         name: "WebDav",
                     },
                     {
+                        name: "Plugins",
+                    },
+                    {
                         name: "About"
                     }
                 ]
@@ -115,6 +118,7 @@ const messages = {
                         }
                     },
                     {name: "WebDav",},
+                    {name: "插件",},
                     {name: "关于"},
                 ]
             }

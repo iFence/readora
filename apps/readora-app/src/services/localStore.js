@@ -13,6 +13,7 @@ export const storeKeys = {
   shortcuts: 'shortcut_bindings',
   dataMigrationVersion: 'data_migration_version',
   syncStatus: 'sync_status',
+  plugins: 'plugins',
 };
 
 export async function getStoreValue(key) {

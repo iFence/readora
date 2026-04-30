@@ -196,6 +196,15 @@
       >
         <a-icon />
       </button>
+      <button
+        type="button"
+        class="tool-icon"
+        :disabled="isSummaryLoading"
+        title="总结"
+        @click="generateBookSummary"
+      >
+        <thought-icon />
+      </button>
     </div>
 
     <annotation-toolbar
@@ -216,16 +225,56 @@
       @cancel="cancelNoteEditor"
       @save="saveNote"
     />
+
+    <n-modal
+      :show="isSummaryVisible"
+      preset="card"
+      class="summary-modal"
+      :mask-closable="!isSummaryLoading"
+      :closable="!isSummaryLoading"
+      @update:show="value => { if (!value) closeSummary(); }"
+    >
+      <section class="summary-panel">
+        <header class="summary-header">
+          <div>
+            <p class="summary-eyebrow">AI Summary</p>
+            <h2>{{ bookInfo.title || '书籍总结' }}</h2>
+            <p v-if="summaryMeta" class="summary-subtitle">
+              已读取 {{ summaryMeta.includedSectionCount }} 个章节<span v-if="summaryMeta.truncated">，基于前 {{ summaryMeta.maxChars }} 字生成</span>
+            </p>
+          </div>
+          <n-button
+            class="summary-close"
+            secondary
+            :disabled="isSummaryLoading"
+            @click="closeSummary"
+          >
+            关闭
+          </n-button>
+        </header>
+
+        <div v-if="isSummaryLoading" class="summary-loading">
+          <n-spin size="medium" />
+          <span>正在提取内容并生成总结...</span>
+        </div>
+        <div v-else-if="summaryError" class="summary-error">
+          {{ summaryError }}
+        </div>
+        <div v-else-if="summaryHtml" class="summary-content markdown-preview" v-html="summaryHtml"></div>
+      </section>
+    </n-modal>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref, toRef } from 'vue';
+import { NButton, NModal, NSpin } from 'naive-ui';
 import AIcon from "@/assets/svg/AIcon.vue";
 import DoubleColumnIcon from "@/assets/svg/DoubleColumnIcon.vue";
 import NextChapter from "@/assets/svg/NextChapter.vue";
 import OneColumnIcon from "@/assets/svg/OneColumnIcon.vue";
 import PreviousChapter from "@/assets/svg/PreviousChapter.vue";
+import ThoughtIcon from "@/assets/svg/ThoughtIcon.vue";
 import AnnotationPopup from "@/components/AnnotationPopup.vue";
 import AnnotationToolbar from "@/components/AnnotationToolbar.vue";
 import EpubToc from "@/components/EpubToc.vue";
@@ -258,6 +307,11 @@ const {
   visiblePageSlots,
   tocPageMap,
   showReaderControls,
+  isSummaryVisible,
+  isSummaryLoading,
+  summaryHtml,
+  summaryError,
+  summaryMeta,
   readerFontSize,
   readerLineHeight,
   annotationVisible,
@@ -268,6 +322,8 @@ const {
   goNext,
   toggleLayout,
   toggleReaderControls,
+  closeSummary,
+  generateBookSummary,
   updateReaderFontSize,
   updateReaderLineHeight,
   resetReaderTypographySettings,
@@ -848,6 +904,11 @@ hr {
   box-shadow: var(--reader-toolbar-shadow);
 }
 
+.tool-icon:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
 .tool-icon.active {
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 28%, var(--border-strong));
@@ -913,6 +974,143 @@ hr {
   transform: translateX(-50%);
 }
 
+.summary-modal {
+  width: min(860px, 82vw);
+}
+
+.summary-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 320px;
+  color: var(--text-primary);
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.summary-eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.summary-header h2 {
+  margin: 0;
+  font-size: 1.45rem;
+  line-height: 1.2;
+}
+
+.summary-subtitle {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.summary-close {
+  flex-shrink: 0;
+}
+
+.summary-loading,
+.summary-error {
+  flex: 1;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 16px;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--surface-panel) 82%, transparent);
+}
+
+.summary-error {
+  color: #c05a5a;
+  text-align: center;
+  padding: 24px;
+}
+
+.summary-content {
+  max-height: min(64vh, 720px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface-panel);
+}
+
+.markdown-preview * {
+  max-width: 100%;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4 {
+  margin: 0 0 14px;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.markdown-preview p,
+.markdown-preview ul,
+.markdown-preview ol,
+.markdown-preview blockquote,
+.markdown-preview pre {
+  margin: 0 0 14px;
+  line-height: 1.75;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  padding-left: 22px;
+}
+
+.markdown-preview blockquote {
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+}
+
+.markdown-preview code {
+  padding: 0.15em 0.38em;
+  border-radius: 8px;
+  background: var(--surface-panel-muted);
+  font-size: 0.92em;
+}
+
+.markdown-preview pre {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #1e2430;
+  color: #f6f8fb;
+  overflow: auto;
+}
+
+.markdown-preview pre code {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.markdown-preview a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.markdown-preview a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 767px) {
   .book-detail {
     min-height: 100px;
@@ -924,6 +1122,14 @@ hr {
 
   .toolbar.compact {
     gap: 8px;
+  }
+
+  .summary-modal {
+    width: min(96vw, 860px);
+  }
+
+  .summary-header {
+    flex-direction: column;
   }
 }
 </style>

@@ -39,6 +39,7 @@ import About from "@/views/Settings/components/About.vue";
 import Appearance from "@/views/Settings/components/Appearance.vue";
 import General from "@/views/Settings/components/General.vue";
 import Hotkeys from "@/views/Settings/components/Hotkeys.vue";
+import Plugins from "@/views/Settings/components/Plugins.vue";
 import WebDav from "@/views/Settings/components/WebDav.vue";
 import { navigateBack } from '@/services/navigationService.js';
 
@@ -61,6 +62,8 @@ const currentTabComponent = computed(() => {
     case 3:
       return WebDav;
     case 4:
+      return Plugins;
+    case 5:
       return About;
     default:
       return General;

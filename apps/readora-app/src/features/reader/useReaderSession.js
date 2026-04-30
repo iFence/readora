@@ -5,10 +5,13 @@ import { useReaderAnnotations } from '@/features/reader/useReaderAnnotations.js'
 import { useReaderBookmarks } from '@/features/reader/useReaderBookmarks.js';
 import { useReaderViewport } from '@/features/reader/useReaderViewport.js';
 import { createReaderViewController } from '@/features/reader/readerViewController.js';
+import { extractBookTextForSummary } from '@/features/reader/readerSummaryContent.js';
 import { useThemeService } from '@/services/themeService.js';
 import { useReaderSettingsService } from '@/services/readerSettingsService.js';
 import { libraryRepository } from '@/services/libraryRepository.js';
 import { applyReaderStyles } from '@/features/reader/foliate/foliateAdapter.js';
+import { summarizeBookContent } from '@/services/llmSummaryService.js';
+import { renderMarkdownToHtml } from '@/services/markdownRenderer.js';
 
 export function useReaderSession(bookUrlRef, viewerRef) {
   const foliateView = ref(null);
@@ -29,6 +32,11 @@ export function useReaderSession(bookUrlRef, viewerRef) {
   const annotations = useReaderAnnotations({ foliateView, bookDetail: readerBook.bookDetail, selection });
   const bookmarks = useReaderBookmarks({ bookDetail: readerBook.bookDetail, currentLocation, foliateView });
   const showReaderControls = ref(false);
+  const isSummaryVisible = ref(false);
+  const isSummaryLoading = ref(false);
+  const summaryHtml = ref('');
+  const summaryError = ref('');
+  const summaryMeta = ref(null);
   let readingSessionStartedAt = 0;
   let readingDurationFlushTimer = null;
   const viewController = createReaderViewController({
@@ -133,6 +141,50 @@ export function useReaderSession(bookUrlRef, viewerRef) {
     showReaderControls.value = !showReaderControls.value;
   }
 
+  function closeSummary() {
+    if (isSummaryLoading.value) {
+      return;
+    }
+
+    isSummaryVisible.value = false;
+  }
+
+  async function generateBookSummary() {
+    if (!readerBook.bookDetail.value) {
+      return;
+    }
+
+    isSummaryVisible.value = true;
+    isSummaryLoading.value = true;
+    summaryError.value = '';
+    summaryHtml.value = '';
+    summaryMeta.value = null;
+
+    try {
+      const extracted = await extractBookTextForSummary(readerBook.bookDetail.value);
+      if (!extracted.content) {
+        throw new Error('No readable text was found in this book.');
+      }
+
+      summaryMeta.value = {
+        includedSectionCount: extracted.includedSectionCount,
+        truncated: extracted.truncated,
+        maxChars: extracted.maxChars,
+      };
+
+      const summary = await summarizeBookContent({
+        title: readerBook.bookInfo.value?.title,
+        author: readerBook.bookInfo.value?.author,
+        content: extracted.content,
+      });
+      summaryHtml.value = renderMarkdownToHtml(summary);
+    } catch (error) {
+      summaryError.value = error?.message || 'Failed to summarize this book.';
+    } finally {
+      isSummaryLoading.value = false;
+    }
+  }
+
   async function applyReaderLayoutSettings() {
     if (!foliateView.value) {
       return;
@@ -218,6 +270,11 @@ export function useReaderSession(bookUrlRef, viewerRef) {
     visiblePageSlots: viewport.visiblePageSlots,
     tocPageMap: viewport.tocPageMap,
     showReaderControls,
+    isSummaryVisible,
+    isSummaryLoading,
+    summaryHtml,
+    summaryError,
+    summaryMeta,
     readerFontSize,
     readerLineHeight,
     annotationVisible: selection.annotationVisible,
@@ -228,6 +285,8 @@ export function useReaderSession(bookUrlRef, viewerRef) {
     goNext: viewport.goNext,
     toggleLayout: viewport.toggleLayout,
     toggleReaderControls,
+    closeSummary,
+    generateBookSummary,
     updateReaderFontSize,
     updateReaderLineHeight,
     resetReaderTypographySettings,

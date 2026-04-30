@@ -84,6 +84,14 @@ class SettingsRepository {
   setSyncStatus(status) {
     return setStoreValue(storeKeys.syncStatus, status);
   }
+
+  getPlugins() {
+    return getStoreValue(storeKeys.plugins);
+  }
+
+  setPlugins(plugins) {
+    return setStoreValue(storeKeys.plugins, plugins);
+  }
 }
 
 export const settingsRepository = new SettingsRepository();
