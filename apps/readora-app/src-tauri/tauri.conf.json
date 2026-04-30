@@ -9,6 +9,14 @@
     "beforeDevCommand": "vite dev",
     "beforeBuildCommand": "vite build  --target esnext"
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhGNkU5ODFENDVCRkRENDEKUldSQjNiOUZIWmh1ai8xNEdXdWkrTHFCRjZySUVKQ3VQdnRIWGNMWEoxR1psdDRoMUtFL2JPeEsK",
+      "endpoints": [
+        "https://github.com/iFence/readora/releases/latest/download/latest.json"
+      ]
+    }
+  },
   "app": {
     "windows": [
       {
@@ -54,6 +62,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "icon": [
       "icons/32x32.png",

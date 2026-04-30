@@ -9,7 +9,8 @@
     "preview": "pnpm --filter readora-app preview",
     "tauri": "pnpm --filter readora-app tauri",
     "mac": "pnpm --filter readora-app mac:build",
-    "build:all": "pnpm -r build"
+    "build:all": "pnpm -r build",
+    "release:notes": "node scripts/extract-release-notes.mjs"
   },
   "keywords": [],
   "author": "",

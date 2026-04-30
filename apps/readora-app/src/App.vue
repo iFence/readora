@@ -6,6 +6,7 @@
         <n-notification-provider>
           <n-message-provider>
             <RouterView />
+            <UpdateNotifier />
           </n-message-provider>
         </n-notification-provider>
       </n-dialog-provider>
@@ -18,6 +19,7 @@
 import { onBeforeMount } from 'vue';
 import { NConfigProvider, NDialogProvider, NNotificationProvider, NMessageProvider } from 'naive-ui';
 import Sidebar from "@/components/Sidebar.vue";
+import UpdateNotifier from "@/components/UpdateNotifier.vue";
 import i18n from '@/i18n.js';
 import { initializeLogging } from '@/services/loggingService.js';
 import { initializeAppShell, useAppShell } from '@/services/appShellService.js';

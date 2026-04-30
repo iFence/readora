@@ -18,10 +18,11 @@ use crate::commands::data::{
 use crate::commands::system::{exit_app, open_external_url};
 use crate::commands::startup::{capture_startup_file_path, get_startup_file_path};
 use crate::commands::theme::{get_theme_dir, get_theme_list, load_theme, load_theme_css};
+use crate::commands::update::{check_for_updates, get_update_state, install_update};
 use crate::database::Database;
 use crate::desktop::tray::setup_tray;
 use crate::desktop::window::handle_single_instance;
-use crate::state::{StartupFilePath, ThemeManager};
+use crate::state::{StartupFilePath, ThemeManager, UpdaterState};
 
 #[cfg(target_os = "macos")]
 use crate::desktop::window::{emit_open_file, focus_main_window};
@@ -32,10 +33,12 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(StartupFilePath::default())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(ThemeManager::shared())
+        .manage(UpdaterState::shared())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             handle_single_instance(app, args);
         }))
@@ -60,6 +63,9 @@ pub fn run() {
             get_theme_list,
             load_theme_css,
             get_startup_file_path,
+            get_update_state,
+            check_for_updates,
+            install_update,
             open_external_url,
             exit_app
         ])
