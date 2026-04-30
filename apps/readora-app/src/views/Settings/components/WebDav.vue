@@ -25,16 +25,22 @@
       label-placement="left"
       label-width="100"
       require-mark-placement="right-hanging"
+      class="settings-form"
     >
       <n-form-item label="服务器地址" path="url">
-        <n-input v-model:value="form.url" placeholder="https://dav.example.com/dav/" />
+        <n-input
+          v-model:value="form.url"
+          class="settings-input"
+          placeholder="https://dav.example.com/dav/"
+        />
       </n-form-item>
       <n-form-item label="用户名" path="username">
-        <n-input v-model:value="form.username" placeholder="请输入用户名" />
+        <n-input v-model:value="form.username" class="settings-input" placeholder="请输入用户名" />
       </n-form-item>
       <n-form-item label="密码" path="password">
         <n-input
           v-model:value="form.password"
+          class="settings-input"
           type="password"
           show-password-on="click"
           placeholder="请输入密码"
@@ -42,10 +48,19 @@
       </n-form-item>
       
       <div class="actions">
-        <n-button class="secondary-action" :loading="testing" @click="testConnection">
+        <n-button
+          class="settings-button settings-button--secondary"
+          :loading="testing"
+          @click="testConnection"
+        >
           测试连接
         </n-button>
-        <n-button type="primary" :loading="saving" @click="saveSettings">
+        <n-button
+          type="primary"
+          class="settings-button settings-button--primary"
+          :loading="saving"
+          @click="saveSettings"
+        >
           保存配置
         </n-button>
       </div>
@@ -54,7 +69,7 @@
 </template>
 
 <script setup>
-import { computed, ref, reactive, onMounted } from 'vue';
+import { computed, ref, reactive, onMounted, onUnmounted } from 'vue';
 import { NForm, NFormItem, NInput, NButton, useMessage } from 'naive-ui';
 import {
   loadWebDavConfig,
@@ -62,6 +77,7 @@ import {
   testWebDavConnection,
 } from '@/services/webdavService.js';
 import { getSyncRecoveryHint, loadSyncStatus } from '@/services/syncStatusService.js';
+import { subscribeToSyncCompleted } from '@/services/syncService.js';
 
 const message = useMessage();
 const formRef = ref(null);
@@ -100,6 +116,7 @@ const rules = {
     trigger: 'blur'
   }
 };
+let disposeSyncSubscription = null;
 
 onMounted(async () => {
   const settings = await loadWebDavConfig();
@@ -109,6 +126,16 @@ onMounted(async () => {
     form.password = settings.password || '';
   }
   syncStatus.value = await loadSyncStatus();
+  disposeSyncSubscription = subscribeToSyncCompleted(detail => {
+    if (detail?.status) {
+      syncStatus.value = detail.status;
+    }
+  });
+});
+
+onUnmounted(() => {
+  disposeSyncSubscription?.();
+  disposeSyncSubscription = null;
 });
 
 function formatTime(value) {
@@ -180,6 +207,8 @@ const saveSettings = async () => {
 </script>
 
 <style scoped>
+@import "../settingsControls.css";
+
 .webdav-setting {
   max-width: 600px;
   color: var(--text-primary);
@@ -191,18 +220,16 @@ const saveSettings = async () => {
 
 .sync-status-panel {
   margin-bottom: 20px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-panel);
+  padding: 12px 0 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 76%, transparent);
 }
 
 .sync-status-panel.success {
-  border-color: color-mix(in srgb, var(--accent) 20%, var(--border-subtle));
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-subtle));
 }
 
 .sync-status-panel.error {
-  border-color: color-mix(in srgb, #d96b6b 40%, var(--border-subtle));
+  border-color: color-mix(in srgb, #d96b6b 30%, var(--border-subtle));
 }
 
 .sync-status-title {
@@ -228,7 +255,7 @@ const saveSettings = async () => {
 .setting-header h3 {
   margin: 0 0 8px 0;
   font-size: 18px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -238,6 +265,20 @@ const saveSettings = async () => {
   color: var(--text-secondary);
 }
 
+.settings-form :deep(.n-form-item) {
+  margin-bottom: 16px;
+}
+
+.settings-form :deep(.n-form-item-label__text) {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-form :deep(.n-form-item-feedback-wrapper) {
+  min-height: 22px;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;
@@ -245,7 +286,10 @@ const saveSettings = async () => {
   gap: 12px;
 }
 
-.secondary-action {
-  background-color: var(--surface-panel);
+@media (max-width: 767px) {
+  .actions {
+    justify-content: stretch;
+    flex-direction: column;
+  }
 }
 </style>

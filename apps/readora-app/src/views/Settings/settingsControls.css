@@ -1,0 +1,200 @@
+.settings-select {
+  --settings-control-height: 38px;
+}
+
+.settings-select :deep(.n-base-selection) {
+  min-height: var(--settings-control-height);
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  background: var(--surface-panel);
+  box-shadow: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.settings-select :deep(.n-base-selection:hover) {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-strong));
+  background: var(--surface-elevated);
+}
+
+.settings-select :deep(.n-base-selection.n-base-selection--focus) {
+  border-color: color-mix(in srgb, var(--accent) 46%, var(--border-strong));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.settings-select :deep(.n-base-selection-label) {
+  padding-left: 14px;
+  padding-right: 36px;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+.settings-select :deep(.n-base-selection-input) {
+  font-size: 0.92rem;
+}
+
+.settings-select :deep(.n-base-selection__border),
+.settings-select :deep(.n-base-selection__state-border) {
+  display: none;
+}
+
+.settings-input {
+  --settings-control-height: 38px;
+}
+
+.settings-input :deep(.n-input-wrapper) {
+  min-height: var(--settings-control-height);
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 10px;
+  background: var(--surface-panel);
+  box-shadow: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.settings-input:hover :deep(.n-input-wrapper) {
+  background: var(--surface-elevated);
+}
+
+.settings-input:deep(.n-input.n-input--focus) .n-input-wrapper,
+.settings-input:deep(.n-input.n-input--stateful:focus-within) .n-input-wrapper {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.settings-input :deep(.n-input__border),
+.settings-input :deep(.n-input__state-border) {
+  border-radius: 10px;
+  border-color: color-mix(in srgb, var(--border-subtle) 70%, transparent);
+}
+
+.settings-input:hover :deep(.n-input__border),
+.settings-input:hover :deep(.n-input__state-border) {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-strong));
+}
+
+.settings-input:deep(.n-input.n-input--focus) .n-input__state-border,
+.settings-input:deep(.n-input.n-input--stateful:focus-within) .n-input__state-border {
+  border-color: color-mix(in srgb, var(--accent) 46%, var(--border-strong));
+}
+
+.settings-input :deep(.n-input__input-el),
+.settings-input :deep(.n-input__placeholder),
+.settings-input :deep(.n-input__password) {
+  font-size: 0.92rem;
+}
+
+.settings-color-picker {
+  width: 44px;
+}
+
+.settings-color-picker :deep(.n-color-picker-trigger) {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  background: var(--surface-panel);
+  box-shadow: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.settings-color-picker:hover :deep(.n-color-picker-trigger) {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-strong));
+}
+
+.settings-color-picker:deep(.n-color-picker.n-color-picker--focus) .n-color-picker-trigger {
+  border-color: color-mix(in srgb, var(--accent) 46%, var(--border-strong));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.settings-button {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.settings-button:hover:not(:disabled) {
+  transform: none;
+}
+
+.settings-button--primary {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  box-shadow: none;
+}
+
+.settings-button--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.settings-button--primary:active:not(:disabled) {
+  background: var(--accent-pressed);
+}
+
+.settings-button--secondary {
+  color: var(--text-primary);
+  background: var(--surface-panel);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 78%, transparent);
+  box-shadow: none;
+}
+
+.settings-button--secondary:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-strong));
+  color: var(--accent);
+}
+
+.settings-button--ghost {
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+
+.settings-button--ghost:hover:not(:disabled) {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.settings-icon-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.settings-icon-button:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: transparent;
+  transform: none;
+}

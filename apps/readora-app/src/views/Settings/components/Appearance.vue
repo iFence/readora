@@ -3,7 +3,7 @@
     <setting-item item-name="切换主题">
       <div class="flex flex-direction-reverse gap-10 align-center">
         <n-select
-          class="dropdown polished-select"
+          class="dropdown settings-select"
           v-model:value="currentTheme"
           @update:value="handleThemeChange"
           :options="themeList"
@@ -27,13 +27,18 @@
         </div>
         <div class="accent-actions">
           <n-color-picker
-            class="color-picker"
+            class="settings-color-picker"
             :value="activeAccentColor"
             :show-alpha="false"
             :modes="['hex']"
             @update:value="handleAccentColorChange"
           />
-          <n-button quaternary @click="resetAccentColor" :disabled="!hasAccentOverride">
+          <n-button
+            quaternary
+            class="settings-button settings-button--secondary"
+            @click="resetAccentColor"
+            :disabled="!hasAccentOverride"
+          >
             恢复默认
           </n-button>
         </div>
@@ -117,6 +122,8 @@ onBeforeMount(async () => {
 </script>
 
 <style scoped>
+@import "../settingsControls.css";
+
 .appearance-settings {
   display: flex;
   flex-direction: column;
@@ -126,52 +133,10 @@ onBeforeMount(async () => {
   width: 154px;
 }
 
-.polished-select {
-  :deep(.n-base-selection) {
-    min-height: 38px;
-    border-radius: 14px;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
-    background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-  }
-
-  :deep(.n-base-selection:hover) {
-    border-color: color-mix(in srgb, var(--accent) 22%, var(--border-strong));
-    background: color-mix(in srgb, var(--surface-panel) 92%, transparent);
-  }
-
-  :deep(.n-base-selection.n-base-selection--focus) {
-    border-color: color-mix(in srgb, var(--accent) 42%, var(--border-strong));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
-  }
-
-  :deep(.n-base-selection-label) {
-    padding-left: 14px;
-    padding-right: 34px;
-    font-size: 0.9rem;
-    color: var(--text-primary);
-  }
-
-  :deep(.n-base-selection-input) {
-    font-size: 0.9rem;
-  }
-
-  :deep(.n-base-selection__border),
-  :deep(.n-base-selection__state-border) {
-    display: none;
-  }
-}
-
 .folder {
   width: 1.5rem;
   aspect-ratio: 1/1;
-  cursor: pointer;
-}
-
-.folder:hover {
-  background-color: var(--surface-hover);
-  border-radius: 12px;
+  color: var(--accent);
 }
 
 .accent-setting {
@@ -194,7 +159,7 @@ onBeforeMount(async () => {
   height: 24px;
   border-radius: 999px;
   border: 2px solid transparent;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35), var(--shadow-sm);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32);
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
@@ -204,17 +169,14 @@ onBeforeMount(async () => {
 }
 
 .preset-swatch.active {
-  border-color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent) 72%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .accent-actions {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.color-picker {
-  width: 42px;
 }
 
 .reader-text-color-setting {
@@ -241,8 +203,23 @@ onBeforeMount(async () => {
   color: var(--text-secondary);
   font-size: 0.78rem;
   line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 420px;
+}
+
+@media (max-width: 767px) {
+  .accent-setting,
+  .preset-list,
+  .accent-actions,
+  .reader-text-color-setting {
+    justify-content: flex-start;
+  }
+
+  .reader-text-color-setting {
+    width: 100%;
+  }
+
+  .setting-copy {
+    text-align: left;
+  }
 }
 </style>

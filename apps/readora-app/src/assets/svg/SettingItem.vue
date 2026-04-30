@@ -1,5 +1,5 @@
 <template>
-  <div class="setting-item flex justify-space-between">
+  <div class="setting-item">
     <div class="setting-item-info">
       <div class="setting-name">
         {{ itemName }}
@@ -22,16 +22,56 @@ defineProps({
 <style scoped>
 .setting-item {
   width: 100%;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--border-subtle);
+  min-height: 64px;
+  padding: 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 76%, transparent);
+}
+
+.setting-item:first-child {
+  padding-top: 0;
+}
+
+.setting-item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
 }
 
 .setting-name {
-  font-size: 1.1rem;
+  font-size: 0.96rem;
+  font-weight: 500;
+  line-height: 1.4;
   color: var(--text-primary);
 }
 
 .setting-item-control {
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  flex: 1;
+}
+
+.setting-item-info {
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .setting-item {
+    min-height: 0;
+    padding: 14px 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .setting-item-control {
+    justify-content: flex-start;
+  }
 }
 </style>

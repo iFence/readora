@@ -71,9 +71,7 @@ const currentTabComponent = computed(() => {
 <style scoped>
 .setting-container {
   height: calc(var(--app-safe-vh, 100vh) - var(--app-top-offset, 0px));
-  background:
-    radial-gradient(circle at top right, var(--accent-soft), transparent 30%),
-    var(--surface-app);
+  background: var(--surface-app);
   overflow: hidden;
 }
 
@@ -86,9 +84,8 @@ const currentTabComponent = computed(() => {
   justify-content: space-between;
   min-height: 72px;
   padding: 0 clamp(16px, 4vw, 42px);
-  background-color: color-mix(in srgb, var(--surface-panel) 94%, transparent);
+  background-color: color-mix(in srgb, var(--surface-app) 94%, transparent);
   border-bottom: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-sm);
   backdrop-filter: blur(14px);
 }
 
@@ -100,21 +97,18 @@ const currentTabComponent = computed(() => {
   padding: 24px 0 calc(24px + var(--app-bottom-nav-height, 0px));
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
-  gap: 24px;
+  gap: 28px;
   box-sizing: border-box;
 }
 
 .setting-bar {
   height: 100%;
   min-height: 0;
-  background-color: var(--surface-panel);
-  border: 1px solid var(--border-subtle);
-  border-radius: 28px;
-  box-shadow: var(--shadow-sm);
+  border-right: 1px solid var(--border-subtle);
 }
 
 .sidebar {
-  padding: 16px;
+  padding: 4px 18px 4px 0;
 }
 
 .sidebar ul {
@@ -124,8 +118,8 @@ const currentTabComponent = computed(() => {
 }
 
 .setting-bar li {
-  padding: 12px 16px;
-  border-radius: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
   color: var(--text-secondary);
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -143,11 +137,7 @@ const currentTabComponent = computed(() => {
 
 .setting-content {
   min-height: min(720px, calc(var(--app-safe-vh, 100vh) - 160px));
-  padding: clamp(20px, 4vw, 36px) clamp(18px, 5vw, 42px);
-  background-color: var(--surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: 28px;
-  box-shadow: var(--shadow-sm);
+  padding: 4px 0 0;
   overflow-y: auto;
 }
 
@@ -192,11 +182,12 @@ const currentTabComponent = computed(() => {
   }
 
   .setting-bar {
-    border-radius: 22px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
   }
 
   .sidebar {
-    padding: 12px;
+    padding: 0 0 14px;
   }
 
   .sidebar ul {
@@ -206,7 +197,7 @@ const currentTabComponent = computed(() => {
   }
 
   .setting-bar li {
-    min-height: 48px;
+    min-height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -215,7 +206,7 @@ const currentTabComponent = computed(() => {
 
   .setting-content {
     min-height: auto;
-    border-radius: 22px;
+    padding-top: 0;
   }
 }
 </style>
