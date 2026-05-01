@@ -1,18 +1,18 @@
 <template>
   <div class="plugins-setting">
     <div class="setting-header">
-      <h3>插件</h3>
-      <p class="desc">安装、启用和配置 Readora 插件。AI 阅读助手是内置插件之一，后续独立插件也会出现在这里。</p>
+      <h3>{{ t('settings.plugins.title') }}</h3>
+      <p class="desc">{{ t('settings.plugins.description') }}</p>
     </div>
 
     <section class="plugin-section">
       <div class="section-header">
         <div>
-          <h4>插件列表</h4>
-          <p>点击插件查看详情、启用状态和配置项。</p>
+          <h4>{{ t('settings.plugins.listTitle') }}</h4>
+          <p>{{ t('settings.plugins.listDescription') }}</p>
         </div>
         <n-button class="settings-button settings-button--secondary" @click="showManifestModal = true">
-          安装 manifest
+          {{ t('settings.plugins.installManifest') }}
         </n-button>
       </div>
 
@@ -31,12 +31,12 @@
           </button>
           <div class="plugin-actions">
             <span class="plugin-state" :class="{ enabled: plugin.installed && plugin.enabled }">
-              {{ plugin.installed ? (plugin.enabled ? '已启用' : '已停用') : '未安装' }}
+              {{ getPluginStatusLabel(plugin.installed, plugin.enabled) }}
             </span>
           </div>
         </div>
       </div>
-      <div v-else class="empty-state">暂无插件</div>
+      <div v-else class="empty-state">{{ t('settings.plugins.empty') }}</div>
     </section>
 
     <n-modal
@@ -50,7 +50,7 @@
     >
       <div class="plugin-detail-shell">
         <aside class="plugin-detail-sidebar">
-          <div class="plugin-detail-sidebar-title">插件</div>
+          <div class="plugin-detail-sidebar-title">{{ t('settings.plugins.sidebarTitle') }}</div>
           <button
             v-for="plugin in pluginEntries"
             :key="plugin.id"
@@ -61,7 +61,7 @@
           >
             <span class="plugin-detail-list-name">{{ plugin.manifest.name }}</span>
             <span class="plugin-detail-list-status">
-              {{ plugin.installed ? (plugin.enabled ? '已启用' : '已停用') : '未安装' }}
+              {{ getPluginStatusLabel(plugin.installed, plugin.enabled) }}
             </span>
           </button>
         </aside>
@@ -73,7 +73,7 @@
                 <div class="plugin-title-row">
                   <h3>{{ selectedPluginManifest.name }}</h3>
                   <span class="plugin-status-badge inline" :class="{ enabled: selectedPluginEntry.enabled }">
-                    {{ selectedPluginEntry.installed ? (selectedPluginEntry.enabled ? '已启用' : '已停用') : '未安装' }}
+                    {{ getPluginStatusLabel(selectedPluginEntry.installed, selectedPluginEntry.enabled) }}
                   </span>
                 </div>
                 <p>{{ selectedPluginManifest.description }}</p>
@@ -81,19 +81,19 @@
             </div>
             <div class="plugin-info-grid">
               <div>
-                <span>版本</span>
+                <span>{{ t('settings.plugins.infoVersion') }}</span>
                 <strong>{{ selectedPluginManifest.version || '-' }}</strong>
               </div>
               <div>
-                <span>作者</span>
+                <span>{{ t('settings.plugins.infoAuthor') }}</span>
                 <strong>{{ selectedPluginManifest.author || '-' }}</strong>
               </div>
               <div>
-                <span>类型</span>
+                <span>{{ t('settings.plugins.infoType') }}</span>
                 <strong>{{ selectedPluginManifest.type || '-' }}</strong>
               </div>
               <div>
-                <span>ID</span>
+                <span>{{ t('settings.plugins.infoId') }}</span>
                 <strong>{{ selectedPluginEntry.id }}</strong>
               </div>
             </div>
@@ -105,7 +105,7 @@
                 class="settings-button settings-button--primary"
                 @click="installSelectedPlugin"
               >
-                安装
+                {{ t('settings.plugins.install') }}
               </n-button>
               <n-switch
                 v-else
@@ -113,51 +113,40 @@
                 @update:value="value => updateEnabled(selectedPluginEntry.id, value)"
               />
               <n-button class="settings-button settings-button--secondary" disabled>
-                更新
+                {{ t('settings.plugins.update') }}
               </n-button>
               <n-button
                 v-if="selectedPluginEntry.installed"
                 class="settings-button settings-button--ghost"
                 @click="removeSelectedPlugin"
               >
-                卸载
+                {{ t('settings.plugins.uninstall') }}
               </n-button>
             </div>
           </section>
 
           <section class="plugin-config-panel">
-            <div>
-              <h4>配置</h4>
-              <p>
-                {{
-                  selectedPluginEntry.installed
-                    ? (selectedPluginEntry.enabled ? '插件已启用。' : '插件未启用，配置会保存但运行时不会被调用。')
-                    : '安装插件后可以配置。'
-                }}
-              </p>
-            </div>
-
             <template v-if="!selectedPluginEntry.installed">
-              <div class="empty-state">该插件尚未安装。</div>
+              <div class="empty-state">{{ t('settings.plugins.notInstalled') }}</div>
             </template>
 
             <template v-else-if="isReaderAssistantPluginSelected">
               <n-tabs type="line" animated class="ai-config-tabs">
-                <n-tab-pane name="models" tab="模型配置">
+                <n-tab-pane name="models" :tab="t('settings.plugins.ai.modelTab')">
                   <div class="ai-section-header">
                     <div>
-                      <span class="ai-section-kicker">Model</span>
-                      <h4>模型配置</h4>
-                      <p>阅读助手始终调用当前模型。Mimo 只是预设之一，也可以配置任意兼容 API。</p>
+                      <span class="ai-section-kicker">{{ t('settings.plugins.ai.modelKicker') }}</span>
+                      <h4>{{ t('settings.plugins.ai.modelTitle') }}</h4>
+                      <p>{{ t('settings.plugins.ai.modelDescription') }}</p>
                     </div>
                     <n-button class="settings-button settings-button--secondary" @click="createModelProvider">
-                      新增模型
+                      {{ t('settings.plugins.ai.addModel') }}
                     </n-button>
                   </div>
 
                   <div class="ai-config-layout">
                     <aside class="ai-entity-pane">
-                      <div class="ai-pane-title">模型列表</div>
+                      <div class="ai-pane-title">{{ t('settings.plugins.ai.modelList') }}</div>
                       <div v-if="modelProviders.length" class="entity-list compact-list">
                         <button
                           v-for="provider in modelProviders"
@@ -169,95 +158,113 @@
                         >
                           <span class="entity-main">
                             <span class="entity-title">{{ provider.name }}</span>
-                            <span class="entity-description">{{ provider.model || '未填写模型名称' }}</span>
+                            <span class="entity-description">{{ provider.model || t('settings.plugins.ai.fieldModel') }}</span>
                           </span>
                           <span class="entity-badges">
                             <span class="entity-badge">{{ provider.protocol === 'anthropic' ? 'Anthropic' : 'OpenAI' }}</span>
-                            <span v-if="activeModelProviderId === provider.id" class="entity-badge active">当前</span>
-                            <span v-if="!provider.enabled" class="entity-badge muted">停用</span>
+                            <span v-if="activeModelProviderId === provider.id" class="entity-badge active">{{ t('settings.plugins.ai.badgeCurrent') }}</span>
+                            <span v-if="!provider.enabled" class="entity-badge muted">{{ t('settings.plugins.ai.badgeDisabled') }}</span>
                           </span>
                         </button>
                       </div>
-                      <div v-else class="empty-state compact-empty">尚未配置模型。</div>
+                      <div v-else class="empty-state compact-empty">{{ t('settings.plugins.ai.noModels') }}</div>
                     </aside>
 
                     <div class="ai-editor-pane">
                       <div class="ai-editor-title">
                         <div>
-                          <h5>{{ modelDraft.name || '模型详情' }}</h5>
-                          <p>{{ modelDraft.model || '选择或新增一个模型后进行配置。' }}</p>
+                          <h5>{{ modelDraft.name || t('settings.plugins.ai.modelDetail') }}</h5>
+                          <p>{{ modelDraft.model || t('settings.plugins.ai.modelDetailHint') }}</p>
                         </div>
                       </div>
 
                       <n-form v-if="modelDraft.id" label-placement="top" class="settings-form model-form">
                         <div class="form-grid">
-                          <n-form-item label="名称">
-                            <n-input v-model:value="modelDraft.name" class="settings-input" placeholder="例如 OpenAI / Claude / Mimo" />
+                          <n-form-item :label="t('settings.plugins.ai.fieldName')">
+                            <n-input v-model:value="modelDraft.name" class="settings-input" :placeholder="t('settings.plugins.ai.fieldNamePlaceholder')" />
                           </n-form-item>
-                          <n-form-item label="协议">
+                          <n-form-item>
+                            <template #label>
+                              <span class="field-label-with-tip">
+                                {{ t('settings.plugins.ai.fieldProtocol') }}
+                                <n-tooltip trigger="hover">
+                                  <template #trigger>
+                                    <span class="field-tip-trigger">?</span>
+                                  </template>
+                                  {{ t('settings.plugins.ai.protocolTip') }}
+                                </n-tooltip>
+                              </span>
+                            </template>
                             <n-select
                               v-model:value="modelDraft.protocol"
                               class="settings-select"
                               :options="protocolOptions"
-                              @update:value="applyModelPreset"
                             />
                           </n-form-item>
                         </div>
 
-                        <div class="form-grid">
-                          <n-form-item label="预设">
-                            <n-select
-                              v-model:value="modelDraft.accessMode"
-                              class="settings-select"
-                              :options="accessModeOptions"
-                              @update:value="applyModelPreset"
-                            />
-                          </n-form-item>
-                          <n-form-item label="鉴权头">
-                            <n-select v-model:value="modelDraft.authHeader" class="settings-select" :options="authHeaderOptions" />
-                          </n-form-item>
-                        </div>
-
-                        <n-form-item label="Base URL / API Endpoint">
-                          <n-input v-model:value="modelDraft.baseUrl" class="settings-input" placeholder="https://api.openai.com/v1" />
+                        <n-form-item>
+                          <template #label>
+                            <span class="field-label-with-tip">
+                              {{ t('settings.plugins.ai.fieldEndpoint') }}
+                              <n-tooltip trigger="hover">
+                                <template #trigger>
+                                  <span class="field-tip-trigger">?</span>
+                                </template>
+                                {{ t('settings.plugins.ai.endpointTip') }}
+                              </n-tooltip>
+                            </span>
+                          </template>
+                          <n-input v-model:value="modelDraft.baseUrl" class="settings-input" :placeholder="t('settings.plugins.ai.fieldEndpointPlaceholder')" />
                         </n-form-item>
 
                         <div class="form-grid">
-                          <n-form-item label="模型名称">
-                            <n-input v-model:value="modelDraft.model" class="settings-input" placeholder="gpt-4o-mini / claude-3-5-sonnet-latest" />
+                          <n-form-item :label="t('settings.plugins.ai.fieldModel')">
+                            <n-input v-model:value="modelDraft.model" class="settings-input" :placeholder="t('settings.plugins.ai.fieldModelPlaceholder')" />
                           </n-form-item>
-                          <n-form-item label="Temperature">
+                          <n-form-item>
+                            <template #label>
+                              <span class="field-label-with-tip">
+                                {{ t('settings.plugins.ai.fieldTemperature') }}
+                                <n-tooltip trigger="hover">
+                                  <template #trigger>
+                                    <span class="field-tip-trigger">?</span>
+                                  </template>
+                                  {{ t('settings.plugins.ai.temperatureTip') }}
+                                </n-tooltip>
+                              </span>
+                            </template>
                             <n-input-number v-model:value="modelDraft.temperature" class="settings-input numeric-input" :step="0.1" />
                           </n-form-item>
                         </div>
 
-                        <n-form-item label="API Key">
+                        <n-form-item :label="t('settings.plugins.ai.fieldApiKey')">
                           <n-input
                             v-model:value="modelDraft.apiKey"
                             class="settings-input"
                             type="password"
                             show-password-on="click"
-                            placeholder="仅保存在本机插件配置中"
+                            :placeholder="t('settings.plugins.ai.fieldApiKeyPlaceholder')"
                           />
                         </n-form-item>
 
                         <div class="actions ai-form-actions">
                           <span class="inline-switch">
                             <n-switch v-model:value="modelDraft.enabled" />
-                            <span class="switch-label">启用</span>
+                            <span class="switch-label">{{ t('settings.plugins.statusEnabled') }}</span>
                           </span>
                           <n-button
                             class="settings-button settings-button--secondary"
                             :disabled="!modelDraft.enabled || activeModelProviderId === modelDraft.id"
                             @click="activateSelectedModel"
                           >
-                            设为当前模型
+                            {{ t('settings.plugins.ai.activateModel') }}
                           </n-button>
                           <n-button type="primary" class="settings-button settings-button--primary" @click="saveSelectedModel">
-                            保存模型
+                            {{ t('settings.plugins.ai.saveModel') }}
                           </n-button>
                           <n-button class="settings-button settings-button--ghost" @click="removeSelectedModel">
-                            删除
+                            {{ t('settings.plugins.ai.deleteModel') }}
                           </n-button>
                         </div>
                       </n-form>
@@ -265,21 +272,21 @@
                   </div>
                 </n-tab-pane>
 
-                <n-tab-pane name="skills" tab="读书 Skill">
+                <n-tab-pane name="skills" :tab="t('settings.plugins.ai.skillTab')">
                   <div class="ai-section-header">
                     <div>
-                      <span class="ai-section-kicker">Skill</span>
-                      <h4>读书 Skill</h4>
-                      <p>Skill 决定阅读助手的回答方式。问答时可以从已启用的 Skill 中选择。</p>
+                      <span class="ai-section-kicker">{{ t('settings.plugins.ai.skillKicker') }}</span>
+                      <h4>{{ t('settings.plugins.ai.skillTitle') }}</h4>
+                      <p>{{ t('settings.plugins.ai.skillDescription') }}</p>
                     </div>
                     <n-button class="settings-button settings-button--secondary" @click="createReadingSkill">
-                      新增 Skill
+                      {{ t('settings.plugins.ai.addSkill') }}
                     </n-button>
                   </div>
 
                   <div class="ai-config-layout skill-layout">
                     <aside class="ai-entity-pane">
-                      <div class="ai-pane-title">Skill 列表</div>
+                      <div class="ai-pane-title">{{ t('settings.plugins.ai.skillList') }}</div>
                       <div v-if="readingSkills.length" class="entity-list compact-list">
                         <button
                           v-for="skill in readingSkills"
@@ -291,62 +298,62 @@
                         >
                           <span class="entity-main">
                             <span class="entity-title">{{ skill.name }}</span>
-                            <span class="entity-description">{{ skill.description || '未填写描述' }}</span>
+                            <span class="entity-description">{{ skill.description || t('settings.plugins.ai.fieldSkillDescription') }}</span>
                           </span>
                           <span class="entity-badges">
-                            <span v-if="activeReadingSkillId === skill.id" class="entity-badge active">默认</span>
-                            <span v-if="!skill.enabled" class="entity-badge muted">停用</span>
+                            <span v-if="activeReadingSkillId === skill.id" class="entity-badge active">{{ t('settings.plugins.ai.badgeDefault') }}</span>
+                            <span v-if="!skill.enabled" class="entity-badge muted">{{ t('settings.plugins.ai.badgeDisabled') }}</span>
                           </span>
                         </button>
                       </div>
-                      <div v-else class="empty-state compact-empty">尚未配置 Skill。</div>
+                      <div v-else class="empty-state compact-empty">{{ t('settings.plugins.ai.noSkills') }}</div>
                     </aside>
 
                     <div class="ai-editor-pane">
                       <div class="ai-editor-title">
                         <div>
-                          <h5>{{ skillDraft.name || 'Skill 详情' }}</h5>
-                          <p>{{ skillDraft.description || '定义阅读助手的回答方式、语言和结构。' }}</p>
+                          <h5>{{ skillDraft.name || t('settings.plugins.ai.skillDetail') }}</h5>
+                          <p>{{ skillDraft.description || t('settings.plugins.ai.skillDetailHint') }}</p>
                         </div>
                       </div>
 
                       <n-form v-if="skillDraft.id" label-placement="top" class="settings-form">
                         <div class="form-grid">
-                          <n-form-item label="名称">
-                            <n-input v-model:value="skillDraft.name" class="settings-input" placeholder="例如 深度总结 / 观点提炼" />
+                          <n-form-item :label="t('settings.plugins.ai.fieldName')">
+                            <n-input v-model:value="skillDraft.name" class="settings-input" :placeholder="t('settings.plugins.ai.fieldSkillNamePlaceholder')" />
                           </n-form-item>
-                          <n-form-item label="描述">
-                            <n-input v-model:value="skillDraft.description" class="settings-input" placeholder="在问答选择器中用于识别用途" />
+                          <n-form-item :label="t('settings.plugins.ai.fieldSkillDescription')">
+                            <n-input v-model:value="skillDraft.description" class="settings-input" :placeholder="t('settings.plugins.ai.fieldSkillDescriptionPlaceholder')" />
                           </n-form-item>
                         </div>
 
-                        <n-form-item label="提示词指令">
+                        <n-form-item :label="t('settings.plugins.ai.fieldSkillPrompt')">
                           <n-input
                             v-model:value="skillDraft.systemPrompt"
                             type="textarea"
                             class="settings-input"
                             :autosize="{ minRows: 7, maxRows: 14 }"
-                            placeholder="定义这个 Skill 的回答方式、语言、结构和约束"
+                            :placeholder="t('settings.plugins.ai.fieldSkillPromptPlaceholder')"
                           />
                         </n-form-item>
 
                         <div class="actions ai-form-actions">
                           <span class="inline-switch">
                             <n-switch v-model:value="skillDraft.enabled" />
-                            <span class="switch-label">启用</span>
+                            <span class="switch-label">{{ t('settings.plugins.statusEnabled') }}</span>
                           </span>
                           <n-button
                             class="settings-button settings-button--secondary"
                             :disabled="!skillDraft.enabled || activeReadingSkillId === skillDraft.id"
                             @click="activateSelectedSkill"
                           >
-                            设为默认 Skill
+                            {{ t('settings.plugins.ai.activateSkill') }}
                           </n-button>
                           <n-button type="primary" class="settings-button settings-button--primary" @click="saveSelectedSkill">
-                            保存 Skill
+                            {{ t('settings.plugins.ai.saveSkill') }}
                           </n-button>
                           <n-button class="settings-button settings-button--ghost" @click="removeSelectedSkill">
-                            删除
+                            {{ t('settings.plugins.ai.deleteSkill') }}
                           </n-button>
                         </div>
                       </n-form>
@@ -358,10 +365,10 @@
 
             <template v-else-if="isWebDavPluginSelected">
               <div class="sync-status-panel" :class="syncStatus.state">
-                <div class="sync-status-title">最近同步</div>
+                <div class="sync-status-title">{{ t('settings.plugins.webdav.lastSync') }}</div>
                 <div class="sync-status-line">{{ syncSummary }}</div>
                 <div v-if="syncStatus.lastSuccessAt" class="sync-status-line muted">
-                  最近成功时间：{{ formatTime(syncStatus.lastSuccessAt) }}
+                  {{ t('settings.plugins.webdav.lastSuccess') }}{{ formatTime(syncStatus.lastSuccessAt) }}
                 </div>
                 <div v-if="syncStatus.errorMessage" class="sync-status-line error">
                   {{ syncStatus.errorMessage }}
@@ -380,23 +387,23 @@
                 require-mark-placement="right-hanging"
                 class="settings-form webdav-form"
               >
-                <n-form-item label="服务器地址" path="url">
+                <n-form-item :label="t('settings.plugins.webdav.serverUrl')" path="url">
                   <n-input
                     v-model:value="webDavForm.url"
                     class="settings-input"
-                    placeholder="https://dav.example.com/dav/"
+                    :placeholder="t('settings.plugins.webdav.serverPlaceholder')"
                   />
                 </n-form-item>
-                <n-form-item label="用户名" path="username">
-                  <n-input v-model:value="webDavForm.username" class="settings-input" placeholder="请输入用户名" />
+                <n-form-item :label="t('settings.plugins.webdav.username')" path="username">
+                  <n-input v-model:value="webDavForm.username" class="settings-input" :placeholder="t('settings.plugins.webdav.usernamePlaceholder')" />
                 </n-form-item>
-                <n-form-item label="密码" path="password">
+                <n-form-item :label="t('settings.plugins.webdav.password')" path="password">
                   <n-input
                     v-model:value="webDavForm.password"
                     class="settings-input"
                     type="password"
                     show-password-on="click"
-                    placeholder="请输入密码"
+                    :placeholder="t('settings.plugins.webdav.passwordPlaceholder')"
                   />
                 </n-form-item>
 
@@ -406,7 +413,7 @@
                     :loading="webDavTesting"
                     @click="testWebDav"
                   >
-                    测试连接
+                    {{ t('settings.plugins.webdav.testConnection') }}
                   </n-button>
                   <n-button
                     type="primary"
@@ -414,7 +421,7 @@
                     :loading="webDavSaving"
                     @click="saveWebDav"
                   >
-                    保存配置
+                    {{ t('settings.plugins.webdav.saveConfig') }}
                   </n-button>
                 </div>
               </n-form>
@@ -423,7 +430,7 @@
             <template v-else-if="isPomodoroPluginSelected">
               <n-form label-placement="top" class="settings-form pomodoro-form">
                 <div class="form-grid">
-                  <n-form-item label="专注阅读时长（分钟）">
+                  <n-form-item :label="t('settings.plugins.pomodoro.focusMinutes')">
                     <n-input-number
                       v-model:value="pomodoroDraft.focusMinutes"
                       class="settings-input numeric-input"
@@ -432,7 +439,7 @@
                       :step="1"
                     />
                   </n-form-item>
-                  <n-form-item label="休息时长（分钟）">
+                  <n-form-item :label="t('settings.plugins.pomodoro.breakMinutes')">
                     <n-input-number
                       v-model:value="pomodoroDraft.breakMinutes"
                       class="settings-input numeric-input"
@@ -448,33 +455,33 @@
                     class="settings-button settings-button--primary"
                     @click="savePomodoro"
                   >
-                    保存配置
+                    {{ t('settings.plugins.pomodoro.saveConfig') }}
                   </n-button>
                 </div>
               </n-form>
             </template>
 
-            <div v-else class="empty-state">该插件暂未提供内置配置面板。</div>
+            <div v-else class="empty-state">{{ t('settings.plugins.noBuiltInConfig') }}</div>
           </section>
         </main>
       </div>
     </n-modal>
 
-    <n-modal v-model:show="showManifestModal" preset="dialog" title="安装插件 manifest">
+    <n-modal v-model:show="showManifestModal" preset="dialog" :title="t('settings.plugins.manifestTitle')">
       <div class="manifest-modal">
         <n-input
           v-model:value="manifestText"
           type="textarea"
           :autosize="{ minRows: 8, maxRows: 14 }"
           class="settings-input"
-          placeholder='{"id":"vendor.plugin","name":"Plugin","version":"0.1.0","type":"reader-tool","entry":{"kind":"external"}}'
+          :placeholder="t('settings.plugins.manifestPlaceholder')"
         />
         <div class="actions">
           <n-button class="settings-button settings-button--ghost" @click="showManifestModal = false">
-            取消
+            {{ t('settings.plugins.actions.cancel') }}
           </n-button>
           <n-button type="primary" class="settings-button settings-button--primary" @click="installManifest">
-            安装
+            {{ t('settings.plugins.install') }}
           </n-button>
         </div>
       </div>
@@ -484,6 +491,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   NButton,
   NForm,
@@ -495,6 +503,7 @@ import {
   NSwitch,
   NTabPane,
   NTabs,
+  NTooltip,
   useMessage,
 } from 'naive-ui';
 import {
@@ -530,6 +539,7 @@ import { getSyncRecoveryHint, loadSyncStatus } from '@/services/syncStatusServic
 import { subscribeToSyncCompleted } from '@/services/syncService.js';
 
 const message = useMessage();
+const { t } = useI18n();
 const availablePlugins = ref([]);
 const installedPlugins = ref([]);
 const selectedPluginId = ref('');
@@ -567,28 +577,51 @@ const syncStatus = ref({
 });
 let disposeSyncSubscription = null;
 
-const protocolOptions = [
-  { label: 'OpenAI compatible', value: 'openai' },
-  { label: 'Anthropic compatible', value: 'anthropic' },
-];
-const accessModeOptions = [
-  { label: 'Custom', value: 'custom' },
-  { label: 'Mimo Pay As You Go', value: 'mimo-payg' },
-  { label: 'Mimo Token Plan', value: 'mimo-token-plan' },
-];
-const authHeaderOptions = [
-  { label: 'Authorization: Bearer', value: 'authorization' },
-  { label: 'api-key', value: 'api-key' },
-  { label: 'x-api-key', value: 'x-api-key' },
-];
+const protocolOptions = computed(() => ([
+  { label: t('settings.plugins.ai.protocolOpenAI'), value: 'openai' },
+  { label: t('settings.plugins.ai.protocolAnthropic'), value: 'anthropic' },
+]));
 
 const selectedPlugin = computed(() => (
   installedPlugins.value.find(plugin => plugin.id === selectedPluginId.value) || null
 ));
+function getPluginStatusLabel(installed, enabled) {
+  if (!installed) {
+    return t('settings.plugins.statusNotInstalled');
+  }
+  return enabled ? t('settings.plugins.statusEnabled') : t('settings.plugins.statusDisabled');
+}
+function localizePluginManifest(plugin) {
+  if (!plugin) {
+    return plugin;
+  }
+  if (plugin.id === READER_ASSISTANT_PLUGIN_ID) {
+    return {
+      ...plugin,
+      name: t('settings.plugins.builtIn.readerAssistantName'),
+      description: t('settings.plugins.builtIn.readerAssistantDescription'),
+    };
+  }
+  if (plugin.id === WEB_DAV_SYNC_PLUGIN_ID) {
+    return {
+      ...plugin,
+      name: t('settings.plugins.builtIn.webdavName'),
+      description: t('settings.plugins.builtIn.webdavDescription'),
+    };
+  }
+  if (plugin.id === POMODORO_PLUGIN_ID) {
+    return {
+      ...plugin,
+      name: t('settings.plugins.builtIn.pomodoroName'),
+      description: t('settings.plugins.builtIn.pomodoroDescription'),
+    };
+  }
+  return plugin;
+}
 const pluginEntries = computed(() => {
   const installedEntries = installedPlugins.value.map(plugin => ({
     id: plugin.id,
-    manifest: plugin.manifest,
+    manifest: localizePluginManifest(plugin.manifest),
     installed: true,
     enabled: plugin.enabled,
   }));
@@ -597,7 +630,7 @@ const pluginEntries = computed(() => {
     .filter(plugin => !installedIds.has(plugin.id))
     .map(plugin => ({
       id: plugin.id,
-      manifest: plugin,
+      manifest: localizePluginManifest(plugin),
       installed: false,
       enabled: false,
     }));
@@ -619,32 +652,39 @@ const isPomodoroPluginSelected = computed(() => selectedPlugin.value?.id === POM
 const webDavRules = {
   url: {
     required: true,
-    message: '请输入 WebDav 服务器地址',
+    message: t('settings.plugins.webdav.serverUrl'),
     trigger: 'blur',
   },
   username: {
     required: true,
-    message: '请输入用户名',
+    message: t('settings.plugins.webdav.username'),
     trigger: 'blur',
   },
   password: {
     required: true,
-    message: '请输入密码',
+    message: t('settings.plugins.webdav.password'),
     trigger: 'blur',
   },
 };
 const syncSummary = computed(() => {
   if (syncStatus.value.state === 'error') {
-    return `同步失败 (${syncStatus.value.errorCategory || 'unknown'})`;
+    return `${t('settings.plugins.webdav.syncFailed')} (${syncStatus.value.errorCategory || 'unknown'})`;
   }
 
   if (syncStatus.value.state === 'success') {
-    const modeLabel = syncStatus.value.mode === 'bootstrap' ? '全量初始化' : '增量同步';
-    const compactLabel = syncStatus.value.compacted ? '，本次已压缩远端快照' : '';
-    return `${modeLabel}成功，本地 ${syncStatus.value.localChangeCount} 条，远端 ${syncStatus.value.remoteChangeCount} 条${compactLabel}`;
+    const modeLabel = syncStatus.value.mode === 'bootstrap'
+      ? t('settings.plugins.webdav.syncBootstrap')
+      : t('settings.plugins.webdav.syncIncremental');
+    const compactLabel = syncStatus.value.compacted ? t('settings.plugins.webdav.syncCompacted') : '';
+    return t('settings.plugins.webdav.syncSuccess', {
+      mode: modeLabel,
+      local: syncStatus.value.localChangeCount,
+      remote: syncStatus.value.remoteChangeCount,
+      compacted: compactLabel,
+    });
   }
 
-  return '尚未执行同步';
+  return t('settings.plugins.webdav.neverSynced');
 });
 const syncHint = computed(() => getSyncRecoveryHint(syncStatus.value));
 
@@ -661,31 +701,13 @@ function resetReactive(target, value) {
   Object.assign(target, value);
 }
 
-function getMimoEndpoint(accessMode, protocol) {
-  if (accessMode === 'mimo-payg') {
-    return protocol === 'anthropic'
-      ? 'https://api.xiaomimimo.com/anthropic'
-      : 'https://api.xiaomimimo.com/v1';
-  }
-
-  if (accessMode === 'mimo-token-plan') {
-    return protocol === 'anthropic'
-      ? 'https://token-plan-cn.xiaomimimo.com/anthropic'
-      : 'https://token-plan-cn.xiaomimimo.com/v1';
-  }
-
-  return '';
-}
-
 function createEmptyModelProvider() {
   return {
     id: createId('readora.model'),
     name: '',
     protocol: 'openai',
-    accessMode: 'custom',
     baseUrl: 'https://api.openai.com/v1',
     apiKey: '',
-    authHeader: 'authorization',
     model: 'gpt-4o-mini',
     temperature: 0.2,
     enabled: true,
@@ -700,18 +722,6 @@ function createEmptyReadingSkill() {
     systemPrompt: 'You are a reading assistant for an EPUB reader. Answer based only on the supplied book context. Return concise, structured Chinese unless the user asks for another language.',
     enabled: true,
   };
-}
-
-function applyModelPreset() {
-  const endpoint = getMimoEndpoint(modelDraft.accessMode, modelDraft.protocol);
-  if (endpoint) {
-    modelDraft.baseUrl = endpoint;
-    modelDraft.authHeader = modelDraft.protocol === 'anthropic' ? 'x-api-key' : 'api-key';
-  } else if (modelDraft.protocol === 'anthropic' && modelDraft.authHeader === 'authorization') {
-    modelDraft.authHeader = 'x-api-key';
-  } else if (modelDraft.protocol === 'openai' && modelDraft.authHeader === 'x-api-key') {
-    modelDraft.authHeader = 'authorization';
-  }
 }
 
 async function refreshPlugins() {
@@ -803,9 +813,9 @@ async function installBuiltIn(pluginId) {
     await setPluginEnabled(pluginId, true);
     await refreshPlugins();
     await selectPlugin(pluginId);
-    message.success('插件已安装');
+    message.success(t('settings.plugins.messages.pluginInstalled'));
   } catch (error) {
-    message.error(error?.message || '插件安装失败');
+    message.error(error?.message || t('settings.plugins.messages.pluginInstallFailed'));
   }
 }
 
@@ -825,9 +835,9 @@ async function installManifest() {
     await selectPlugin(manifest.id);
     showManifestModal.value = false;
     manifestText.value = '';
-    message.success('插件已安装');
+    message.success(t('settings.plugins.messages.pluginInstalled'));
   } catch (error) {
-    message.error(error?.message || 'manifest 格式无效');
+    message.error(error?.message || t('settings.plugins.messages.manifestInvalid'));
   }
 }
 
@@ -836,7 +846,7 @@ async function updateEnabled(pluginId, enabled) {
     await setPluginEnabled(pluginId, enabled);
     await refreshAll();
   } catch (error) {
-    message.error(error?.message || '更新插件状态失败');
+    message.error(error?.message || t('settings.plugins.messages.pluginStateFailed'));
   }
 }
 
@@ -847,9 +857,9 @@ async function removePlugin(pluginId) {
       selectedPluginId.value = '';
     }
     await refreshAll();
-    message.success('插件已卸载');
+    message.success(t('settings.plugins.messages.pluginRemoved'));
   } catch (error) {
-    message.error(error?.message || '插件卸载失败');
+    message.error(error?.message || t('settings.plugins.messages.pluginRemoveFailed'));
   }
 }
 
@@ -886,16 +896,16 @@ function createReadingSkill() {
 async function saveSelectedModel() {
   try {
     if (!modelDraft.name?.trim() || !modelDraft.model?.trim()) {
-      throw new Error('请填写名称和模型名称。');
+      throw new Error(t('settings.plugins.messages.modelRequired'));
     }
 
     const targetId = modelDraft.id;
     await saveModelProvider({ ...modelDraft });
     await refreshAiSettings();
     selectModelProvider(targetId);
-    message.success('模型配置已保存');
+    message.success(t('settings.plugins.messages.modelSaved'));
   } catch (error) {
-    message.error(error?.message || '保存模型配置失败');
+    message.error(error?.message || t('settings.plugins.messages.modelSaveFailed'));
   }
 }
 
@@ -906,9 +916,9 @@ async function activateSelectedModel() {
     await setActiveModelProvider(targetId);
     await refreshAiSettings();
     selectModelProvider(targetId);
-    message.success('已设为当前模型');
+    message.success(t('settings.plugins.messages.modelActivated'));
   } catch (error) {
-    message.error(error?.message || '设置当前模型失败');
+    message.error(error?.message || t('settings.plugins.messages.modelActivateFailed'));
   }
 }
 
@@ -921,25 +931,25 @@ async function removeSelectedModel() {
     await deleteModelProvider(modelDraft.id);
     selectedModelProviderId.value = '';
     await refreshAiSettings();
-    message.success('模型配置已删除');
+    message.success(t('settings.plugins.messages.modelDeleted'));
   } catch (error) {
-    message.error(error?.message || '删除模型配置失败');
+    message.error(error?.message || t('settings.plugins.messages.modelDeleteFailed'));
   }
 }
 
 async function saveSelectedSkill() {
   try {
     if (!skillDraft.name?.trim() || !skillDraft.systemPrompt?.trim()) {
-      throw new Error('请填写 Skill 名称和提示词指令。');
+      throw new Error(t('settings.plugins.messages.skillRequired'));
     }
 
     const targetId = skillDraft.id;
     await saveReadingSkill({ ...skillDraft });
     await refreshAiSettings();
     selectReadingSkill(targetId);
-    message.success('读书 Skill 已保存');
+    message.success(t('settings.plugins.messages.skillSaved'));
   } catch (error) {
-    message.error(error?.message || '保存读书 Skill 失败');
+    message.error(error?.message || t('settings.plugins.messages.skillSaveFailed'));
   }
 }
 
@@ -950,9 +960,9 @@ async function activateSelectedSkill() {
     await setActiveReadingSkill(targetId);
     await refreshAiSettings();
     selectReadingSkill(targetId);
-    message.success('已设为默认 Skill');
+    message.success(t('settings.plugins.messages.skillActivated'));
   } catch (error) {
-    message.error(error?.message || '设置默认 Skill 失败');
+    message.error(error?.message || t('settings.plugins.messages.skillActivateFailed'));
   }
 }
 
@@ -965,9 +975,9 @@ async function removeSelectedSkill() {
     await deleteReadingSkill(skillDraft.id);
     selectedReadingSkillId.value = '';
     await refreshAiSettings();
-    message.success('读书 Skill 已删除');
+    message.success(t('settings.plugins.messages.skillDeleted'));
   } catch (error) {
-    message.error(error?.message || '删除读书 Skill 失败');
+    message.error(error?.message || t('settings.plugins.messages.skillDeleteFailed'));
   }
 }
 
@@ -981,7 +991,7 @@ function formatTime(value) {
 
 async function testWebDav() {
   if (!webDavForm.url) {
-    message.warning('请先输入服务器地址');
+    message.warning(t('settings.plugins.messages.webdavNeedUrl'));
     return;
   }
 
@@ -989,12 +999,12 @@ async function testWebDav() {
   try {
     const connected = await testWebDavConnection({ ...webDavForm });
     if (connected) {
-      message.success('连接成功');
+      message.success(t('settings.plugins.messages.webdavConnectSuccess'));
     } else {
-      message.error('连接失败');
+      message.error(t('settings.plugins.messages.webdavConnectFailed'));
     }
   } catch {
-    message.error('连接失败，请检查地址或网络');
+    message.error(t('settings.plugins.messages.webdavConnectFailed'));
   } finally {
     webDavTesting.value = false;
   }
@@ -1003,16 +1013,16 @@ async function testWebDav() {
 async function saveWebDav() {
   webDavFormRef.value?.validate(async errors => {
     if (errors) {
-      message.error('请填写完整信息');
+      message.error(t('settings.plugins.messages.webdavNeedFullInfo'));
       return;
     }
 
     webDavSaving.value = true;
     try {
       await saveWebDavConfig({ ...webDavForm });
-      message.success('WebDav 插件配置已保存');
+      message.success(t('settings.plugins.messages.webdavSaved'));
     } catch {
-      message.error('保存失败');
+      message.error(t('settings.plugins.messages.saveFailed'));
     } finally {
       webDavSaving.value = false;
     }
@@ -1024,9 +1034,9 @@ async function savePomodoro() {
     const config = await savePomodoroConfig({ ...pomodoroDraft });
     pomodoroDraft.focusMinutes = config.focusMinutes;
     pomodoroDraft.breakMinutes = config.breakMinutes;
-    message.success('番茄钟插件配置已保存');
+    message.success(t('settings.plugins.messages.pomodoroSaved'));
   } catch (error) {
-    message.error(error?.message || '保存番茄钟配置失败');
+    message.error(error?.message || t('settings.plugins.messages.pomodoroSaveFailed'));
   }
 }
 
@@ -1214,6 +1224,27 @@ onUnmounted(() => {
   margin-top: 4px;
   padding-top: 14px;
   border-top: 1px solid color-mix(in srgb, var(--border-subtle) 58%, transparent);
+}
+
+.field-label-with-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.field-tip-trigger {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--surface-panel);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: help;
 }
 
 .inline-switch {
@@ -1492,8 +1523,7 @@ onUnmounted(() => {
   border-top: 1px solid color-mix(in srgb, var(--border-subtle) 58%, transparent);
 }
 
-.plugin-info-grid span,
-.plugin-config-panel > div > p {
+.plugin-info-grid span {
   display: block;
   color: var(--text-muted);
   font-size: 0.78rem;
@@ -1520,18 +1550,6 @@ onUnmounted(() => {
 
 .plugin-config-panel {
   padding-top: 22px;
-}
-
-.plugin-config-panel > div > h4 {
-  margin: 0 0 6px;
-  color: var(--text-primary);
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.plugin-config-panel > div > p {
-  margin: 0 0 16px;
-  line-height: 1.5;
 }
 
 .entity-badge {

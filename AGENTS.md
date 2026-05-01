@@ -61,6 +61,16 @@
 - Reader style overrides must be grouped by concern. Do not mix typography, color normalization, and layout overrides into one conditional block unless they truly share the same control.
 - A setting toggle should control one behavior dimension. Avoid hiding unrelated CSS or layout behavior behind a convenience flag.
 
+## Localization and Bilingual Requirements
+
+- User-facing product functionality must ship with both Chinese and English text support by default.
+- Treat bilingual support as part of the feature definition, not as optional polish to add later.
+- When adding a new feature, also add the corresponding `zh` and `en` entries to the app i18n source in the same change unless there is a documented exception.
+- Do not hardcode new user-visible strings in Vue components, plugin panels, dialogs, empty states, tooltips, buttons, or notifications when the surrounding surface already uses i18n.
+- For plugin-related functionality, include bilingual names, descriptions, settings labels, action text, validation messages, and empty/loading states.
+- If a feature cannot practically be localized in the same change, call that out explicitly as a release blocker or document why the surface is intentionally not yet shipped.
+- When refactoring an existing surface, prefer pulling newly introduced strings into i18n rather than adding more literal text beside already localized content.
+
 ## Shell / Window Chrome Safety
 
 - Do not modify `apps/readora-app/index.html`, titlebar behavior, window controls, or sidebar trigger geometry for a reader-specific bug unless you have confirmed the problem belongs to shell chrome rather than reader content/layout.
