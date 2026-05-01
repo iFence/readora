@@ -56,9 +56,6 @@ const messages = {
                         }
                     },
                     {
-                        name: "WebDav",
-                    },
-                    {
                         name: "Plugins",
                     },
                     {
@@ -117,7 +114,6 @@ const messages = {
                             exit: "退出",
                         }
                     },
-                    {name: "WebDav",},
                     {name: "插件",},
                     {name: "关于"},
                 ]

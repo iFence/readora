@@ -14,6 +14,7 @@ export const storeKeys = {
   dataMigrationVersion: 'data_migration_version',
   syncStatus: 'sync_status',
   plugins: 'plugins',
+  aiSettings: 'ai_settings',
 };
 
 export async function getStoreValue(key) {

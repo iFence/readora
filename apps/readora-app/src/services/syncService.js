@@ -2,7 +2,11 @@ import { getBookKey } from '@/entities/models.js';
 import { libraryRepository } from '@/services/libraryRepository.js';
 import { exportSyncSnapshot, getLastSyncAt, importSyncSnapshot, setLastSyncAt } from '@/platform/tauri/dataBridge.js';
 import { saveSyncStatus, loadSyncStatus } from '@/services/syncStatusService.js';
-import { createConfiguredWebDavClient, loadWebDavConfig } from '@/services/webdavService.js';
+import {
+  createConfiguredWebDavClient,
+  isWebDavPluginEnabled,
+  loadWebDavConfig,
+} from '@/services/webdavService.js';
 
 export const SYNC_COMPLETED_EVENT = 'readora:sync-completed';
 
@@ -155,6 +159,10 @@ export function subscribeToSyncCompleted(listener) {
 }
 
 export async function canSyncLibraryAutomatically() {
+  if (!await isWebDavPluginEnabled()) {
+    return false;
+  }
+
   const config = await loadWebDavConfig();
   return Boolean(config.url && config.username && config.password);
 }

@@ -8,3 +8,4 @@ coverage/
 apps/readora-app/dist/
 apps/readora-app/src-tauri/target/
 apps/readora-app/src-tauri/gen/schemas/
+apps/readora-app/.tauri

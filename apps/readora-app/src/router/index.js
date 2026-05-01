@@ -20,11 +20,6 @@ export const constantRoutes = [
                 name: 'general',
                 component: () => import("@/views/Settings/components/General.vue")
             },
-            {
-                path: '/webdav',
-                name: 'webdav',
-                component: () => import("@/views/Settings/components/WebDav.vue")
-            },
         ]
     },
     {

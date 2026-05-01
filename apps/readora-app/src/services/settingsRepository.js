@@ -92,6 +92,14 @@ class SettingsRepository {
   setPlugins(plugins) {
     return setStoreValue(storeKeys.plugins, plugins);
   }
+
+  getAiSettings() {
+    return getStoreValue(storeKeys.aiSettings);
+  }
+
+  setAiSettings(settings) {
+    return setStoreValue(storeKeys.aiSettings, settings);
+  }
 }
 
 export const settingsRepository = new SettingsRepository();

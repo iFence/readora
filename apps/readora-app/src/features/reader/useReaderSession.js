@@ -5,13 +5,21 @@ import { useReaderAnnotations } from '@/features/reader/useReaderAnnotations.js'
 import { useReaderBookmarks } from '@/features/reader/useReaderBookmarks.js';
 import { useReaderViewport } from '@/features/reader/useReaderViewport.js';
 import { createReaderViewController } from '@/features/reader/readerViewController.js';
-import { extractBookTextForSummary } from '@/features/reader/readerSummaryContent.js';
+import { resolveReaderAssistantContext } from '@/features/reader/readerSummaryContent.js';
 import { useThemeService } from '@/services/themeService.js';
 import { useReaderSettingsService } from '@/services/readerSettingsService.js';
 import { libraryRepository } from '@/services/libraryRepository.js';
 import { applyReaderStyles } from '@/features/reader/foliate/foliateAdapter.js';
-import { summarizeBookContent } from '@/services/llmSummaryService.js';
+import { askBookAssistant } from '@/services/llmSummaryService.js';
 import { renderMarkdownToHtml } from '@/services/markdownRenderer.js';
+import {
+  getAiSettings,
+  isReaderAssistantPluginEnabled,
+} from '@/services/aiSettingsService.js';
+import {
+  isPomodoroPluginEnabled,
+  loadPomodoroConfig,
+} from '@/services/pomodoroPluginService.js';
 
 export function useReaderSession(bookUrlRef, viewerRef) {
   const foliateView = ref(null);
@@ -32,13 +40,25 @@ export function useReaderSession(bookUrlRef, viewerRef) {
   const annotations = useReaderAnnotations({ foliateView, bookDetail: readerBook.bookDetail, selection });
   const bookmarks = useReaderBookmarks({ bookDetail: readerBook.bookDetail, currentLocation, foliateView });
   const showReaderControls = ref(false);
-  const isSummaryVisible = ref(false);
-  const isSummaryLoading = ref(false);
-  const summaryHtml = ref('');
-  const summaryError = ref('');
-  const summaryMeta = ref(null);
+  const isAssistantVisible = ref(false);
+  const isAssistantLoading = ref(false);
+  const assistantDraft = ref('');
+  const assistantMessages = ref([]);
+  const assistantError = ref('');
+  const readingSkills = ref([]);
+  const selectedReadingSkillId = ref('');
+  const isPomodoroEnabled = ref(false);
+  const isPomodoroPanelVisible = ref(false);
+  const isPomodoroRunning = ref(false);
+  const pomodoroMode = ref('focus');
+  const pomodoroRemainingSeconds = ref(25 * 60);
+  const pomodoroConfig = ref({
+    focusMinutes: 25,
+    breakMinutes: 5,
+  });
   let readingSessionStartedAt = 0;
   let readingDurationFlushTimer = null;
+  let pomodoroTimer = null;
   const viewController = createReaderViewController({
     foliateView,
     currentLocation,
@@ -67,6 +87,7 @@ export function useReaderSession(bookUrlRef, viewerRef) {
   function cleanup() {
     void flushReadingDuration();
     stopReadingDurationFlushLoop();
+    stopPomodoroTimer();
     viewController.cleanup();
     viewport.stopResize();
     annotations.reset();
@@ -94,6 +115,87 @@ export function useReaderSession(bookUrlRef, viewerRef) {
 
     window.clearInterval(readingDurationFlushTimer);
     readingDurationFlushTimer = null;
+  }
+
+  function getPomodoroDurationSeconds(mode = pomodoroMode.value) {
+    const minutes = mode === 'break'
+      ? pomodoroConfig.value.breakMinutes
+      : pomodoroConfig.value.focusMinutes;
+    return Math.max(1, Number(minutes) || 1) * 60;
+  }
+
+  function stopPomodoroTimer() {
+    if (pomodoroTimer == null) {
+      return;
+    }
+
+    window.clearInterval(pomodoroTimer);
+    pomodoroTimer = null;
+  }
+
+  function startPomodoroTimer() {
+    stopPomodoroTimer();
+    pomodoroTimer = window.setInterval(() => {
+      if (pomodoroRemainingSeconds.value <= 1) {
+        pomodoroRemainingSeconds.value = 0;
+        isPomodoroRunning.value = false;
+        stopPomodoroTimer();
+        isPomodoroPanelVisible.value = true;
+        return;
+      }
+
+      pomodoroRemainingSeconds.value -= 1;
+    }, 1000);
+  }
+
+  async function refreshPomodoroPlugin() {
+    isPomodoroEnabled.value = await isPomodoroPluginEnabled();
+    if (!isPomodoroEnabled.value) {
+      isPomodoroPanelVisible.value = false;
+      isPomodoroRunning.value = false;
+      stopPomodoroTimer();
+      return;
+    }
+
+    const previousFocusSeconds = pomodoroConfig.value.focusMinutes * 60;
+    pomodoroConfig.value = await loadPomodoroConfig();
+    if (pomodoroRemainingSeconds.value <= 0 || pomodoroRemainingSeconds.value === previousFocusSeconds) {
+      pomodoroRemainingSeconds.value = getPomodoroDurationSeconds(pomodoroMode.value);
+    }
+  }
+
+  function togglePomodoroPanel() {
+    isPomodoroPanelVisible.value = !isPomodoroPanelVisible.value;
+    void refreshPomodoroPlugin();
+  }
+
+  function startPomodoro() {
+    if (!isPomodoroEnabled.value) {
+      return;
+    }
+
+    if (pomodoroRemainingSeconds.value <= 0) {
+      pomodoroRemainingSeconds.value = getPomodoroDurationSeconds(pomodoroMode.value);
+    }
+
+    isPomodoroRunning.value = true;
+    startPomodoroTimer();
+  }
+
+  function pausePomodoro() {
+    isPomodoroRunning.value = false;
+    stopPomodoroTimer();
+  }
+
+  function resetPomodoro(mode = pomodoroMode.value) {
+    pomodoroMode.value = mode;
+    isPomodoroRunning.value = false;
+    stopPomodoroTimer();
+    pomodoroRemainingSeconds.value = getPomodoroDurationSeconds(mode);
+  }
+
+  function switchPomodoroMode(mode) {
+    resetPomodoro(mode);
   }
 
   async function flushReadingDuration({ restartSession = false } = {}) {
@@ -141,47 +243,118 @@ export function useReaderSession(bookUrlRef, viewerRef) {
     showReaderControls.value = !showReaderControls.value;
   }
 
-  function closeSummary() {
-    if (isSummaryLoading.value) {
+  async function refreshReadingSkills() {
+    if (!await isReaderAssistantPluginEnabled()) {
+      readingSkills.value = [];
+      selectedReadingSkillId.value = '';
+      assistantError.value = '请先在插件设置中安装并启用 AI 阅读助手插件。';
       return;
     }
 
-    isSummaryVisible.value = false;
+    const settings = await getAiSettings();
+    readingSkills.value = settings.readingSkills.filter(skill => skill.enabled);
+    selectedReadingSkillId.value = readingSkills.value.some(skill => skill.id === selectedReadingSkillId.value)
+      ? selectedReadingSkillId.value
+      : settings.activeReadingSkillId;
   }
 
-  async function generateBookSummary() {
+  function openAssistant() {
+    isAssistantVisible.value = true;
+    void refreshReadingSkills().catch(error => {
+      assistantError.value = error?.message || '读取读书 Skill 失败。';
+    });
+  }
+
+  function closeAssistant() {
+    if (isAssistantLoading.value) {
+      return;
+    }
+
+    isAssistantVisible.value = false;
+  }
+
+  async function sendAssistantPrompt(prompt = assistantDraft.value) {
     if (!readerBook.bookDetail.value) {
       return;
     }
 
-    isSummaryVisible.value = true;
-    isSummaryLoading.value = true;
-    summaryError.value = '';
-    summaryHtml.value = '';
-    summaryMeta.value = null;
+    const trimmedPrompt = prompt.trim();
+    if (!trimmedPrompt) {
+      return;
+    }
+
+    isAssistantVisible.value = true;
+    isAssistantLoading.value = true;
+    assistantError.value = '';
+    assistantDraft.value = '';
+    assistantMessages.value = [
+      ...assistantMessages.value,
+      {
+        id: crypto.randomUUID(),
+        role: 'user',
+        text: trimmedPrompt,
+        html: renderMarkdownToHtml(trimmedPrompt),
+      },
+    ];
 
     try {
-      const extracted = await extractBookTextForSummary(readerBook.bookDetail.value);
-      if (!extracted.content) {
-        throw new Error('No readable text was found in this book.');
-      }
-
-      summaryMeta.value = {
-        includedSectionCount: extracted.includedSectionCount,
-        truncated: extracted.truncated,
-        maxChars: extracted.maxChars,
-      };
-
-      const summary = await summarizeBookContent({
+      const context = await resolveReaderAssistantContext({
+        book: readerBook.bookDetail.value,
+        currentLocation: currentLocation.value,
+        prompt: trimmedPrompt,
+      });
+      const response = await askBookAssistant({
         title: readerBook.bookInfo.value?.title,
         author: readerBook.bookInfo.value?.author,
-        content: extracted.content,
+        content: context.content,
+        prompt: trimmedPrompt,
+        contextLabel: `${context.sectionTitle} (${context.truncated ? `前 ${context.maxChars} 字` : '完整章节'})`,
+        skillId: selectedReadingSkillId.value,
       });
-      summaryHtml.value = renderMarkdownToHtml(summary);
+      assistantMessages.value = [
+        ...assistantMessages.value,
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          text: response,
+          prompt: trimmedPrompt,
+          html: renderMarkdownToHtml(response),
+          meta: {
+            sectionTitle: context.sectionTitle,
+            sectionIndex: context.sectionIndex,
+            truncated: context.truncated,
+            maxChars: context.maxChars,
+          },
+        },
+      ];
     } catch (error) {
-      summaryError.value = error?.message || 'Failed to summarize this book.';
+      assistantError.value = error?.message || '阅读助手请求失败。';
     } finally {
-      isSummaryLoading.value = false;
+      isAssistantLoading.value = false;
+    }
+  }
+
+  async function saveAssistantMessageAsNote(messageId) {
+    const message = assistantMessages.value.find(item => item.id === messageId);
+    if (!message || message.role !== 'assistant') {
+      return;
+    }
+
+    try {
+      await annotations.saveAiNote({
+        content: message.text,
+        prompt: message.prompt,
+        sectionIndex: message.meta?.sectionIndex,
+        sectionTitle: message.meta?.sectionTitle,
+      });
+      assistantMessages.value = assistantMessages.value.map(item => (
+        item.id === messageId
+          ? { ...item, noteSaved: true }
+          : item
+      ));
+      assistantError.value = '';
+    } catch (error) {
+      assistantError.value = error?.message || '保存 AI 总结为笔记失败。';
     }
   }
 
@@ -226,6 +399,7 @@ export function useReaderSession(bookUrlRef, viewerRef) {
   onMounted(async () => {
     await initializeReaderSettings();
     await viewController.openBook(bookUrlRef.value);
+    await refreshPomodoroPlugin();
     markReadingSessionStart();
     startReadingDurationFlushLoop();
     window.addEventListener('keydown', viewport.handleKeydown);
@@ -270,11 +444,19 @@ export function useReaderSession(bookUrlRef, viewerRef) {
     visiblePageSlots: viewport.visiblePageSlots,
     tocPageMap: viewport.tocPageMap,
     showReaderControls,
-    isSummaryVisible,
-    isSummaryLoading,
-    summaryHtml,
-    summaryError,
-    summaryMeta,
+    isAssistantVisible,
+    isAssistantLoading,
+    assistantDraft,
+    assistantMessages,
+    assistantError,
+    readingSkills,
+    selectedReadingSkillId,
+    isPomodoroEnabled,
+    isPomodoroPanelVisible,
+    isPomodoroRunning,
+    pomodoroMode,
+    pomodoroRemainingSeconds,
+    pomodoroConfig,
     readerFontSize,
     readerLineHeight,
     annotationVisible: selection.annotationVisible,
@@ -285,8 +467,15 @@ export function useReaderSession(bookUrlRef, viewerRef) {
     goNext: viewport.goNext,
     toggleLayout: viewport.toggleLayout,
     toggleReaderControls,
-    closeSummary,
-    generateBookSummary,
+    openAssistant,
+    closeAssistant,
+    sendAssistantPrompt,
+    saveAssistantMessageAsNote,
+    togglePomodoroPanel,
+    startPomodoro,
+    pausePomodoro,
+    resetPomodoro,
+    switchPomodoroMode,
     updateReaderFontSize,
     updateReaderLineHeight,
     resetReaderTypographySettings,
@@ -299,6 +488,7 @@ export function useReaderSession(bookUrlRef, viewerRef) {
     copyText: annotations.copyText,
     addNote: annotations.addNote,
     saveNote: annotations.saveNote,
+    saveAiNote: annotations.saveAiNote,
     cancelNoteEditor: annotations.cancelNoteEditor,
     isNoteEditorVisible: annotations.isNoteEditorVisible,
     noteDraft: annotations.noteDraft,

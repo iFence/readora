@@ -10,6 +10,10 @@ function normalizeAnnotation(item) {
   };
 }
 
+export function isSyntheticAnnotation(annotation) {
+  return String(annotation?.value || '').startsWith('readora-ai-note:');
+}
+
 export function createAnnotationStore() {
   const annotations = ref(new Map());
   const annotationsByValue = new Map();

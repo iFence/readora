@@ -1,7 +1,10 @@
 import { computed, ref } from 'vue';
 import { readerRepository } from '@/services/readerRepository.js';
 import { drawAnnotation } from '@/features/reader/foliate/foliateAdapter.js';
-import { createAnnotationStore } from '@/features/reader/annotationStore.js';
+import {
+  createAnnotationStore,
+  isSyntheticAnnotation,
+} from '@/features/reader/annotationStore.js';
 import { createNotePopupPresenter } from '@/features/reader/notePopupPresenter.js';
 import {
   copyTextToClipboard,
@@ -20,6 +23,10 @@ export function useReaderAnnotations({ foliateView, bookDetail, selection }) {
   let activePopupClose = null;
 
   function getAnnotationTypeLabel(entry) {
+    if (entry.style === 'ai-note') {
+      return 'AI 笔记';
+    }
+
     if (entry.style === 'underline') {
       return '下划线';
     }
@@ -75,6 +82,10 @@ export function useReaderAnnotations({ foliateView, bookDetail, selection }) {
     annotations.hydrate(savedAnnotations);
 
     for (const item of savedAnnotations) {
+      if (isSyntheticAnnotation(item)) {
+        continue;
+      }
+
       await foliateView.value.addAnnotation(annotations.getByValue(item.value));
     }
   }
@@ -90,7 +101,7 @@ export function useReaderAnnotations({ foliateView, bookDetail, selection }) {
 
   async function deleteAnnotation(annotation) {
     const bookId = getBookId();
-    if (foliateView.value) {
+    if (foliateView.value && !isSyntheticAnnotation(annotation)) {
       await foliateView.value.deleteAnnotation(annotation);
     }
 
@@ -229,6 +240,34 @@ export function useReaderAnnotations({ foliateView, bookDetail, selection }) {
     cancelNoteEditor();
   }
 
+  async function saveAiNote({ content, prompt, sectionIndex, sectionTitle }) {
+    const note = String(content || '').trim();
+    if (!note) {
+      throw new Error('没有可保存的 AI 总结内容。');
+    }
+
+    const bookId = getBookId();
+    if (!bookId) {
+      throw new Error('当前书籍尚未准备好，无法保存笔记。');
+    }
+
+    const index = Number.isFinite(sectionIndex) ? sectionIndex : 0;
+    const annotation = {
+      value: `readora-ai-note:${Date.now().toString(36)}:${globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2, 10)}`,
+      color: 'purple',
+      style: 'ai-note',
+      text: [
+        sectionTitle ? `章节：${sectionTitle}` : '',
+        prompt ? `问题：${prompt}` : '',
+      ].filter(Boolean).join('\n'),
+      note,
+    };
+
+    annotations.set(index, annotation);
+    await readerRepository.upsertAnnotation(bookId, { index, ...annotation });
+    return annotation;
+  }
+
   async function copyText() {
     const text = selection.getSelectedText();
     if (!text) {
@@ -251,6 +290,10 @@ export function useReaderAnnotations({ foliateView, bookDetail, selection }) {
 
   async function goToAnnotation(annotationValue) {
     if (!annotationValue || !foliateView.value) {
+      return;
+    }
+
+    if (String(annotationValue).startsWith('readora-ai-note:')) {
       return;
     }
 
@@ -296,6 +339,7 @@ export function useReaderAnnotations({ foliateView, bookDetail, selection }) {
     addNote,
     editNote,
     saveNote,
+    saveAiNote,
     cancelNoteEditor,
     isNoteEditorVisible,
     noteDraft,

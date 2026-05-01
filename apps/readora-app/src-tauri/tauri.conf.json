@@ -11,7 +11,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhGNkU5ODFENDVCRkRENDEKUldSQjNiOUZIWmh1ai8xNEdXdWkrTHFCRjZySUVKQ3VQdnRIWGNMWEoxR1psdDRoMUtFL2JPeEsK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk5OTgwN0UyQkM3NDkxREIKUldUYmtYUzg0Z2VZbWRMSFU5RytaU2IyZVNYQ2FGbU44VUo1cFNVdnE2andzSGxYUnNub3czaEUK",
       "endpoints": [
         "https://github.com/iFence/readora/releases/latest/download/latest.json"
       ]

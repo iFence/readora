@@ -164,6 +164,47 @@
       >
         {{ rightPageNumber }}<span v-if="totalPages"> / {{ totalPages }}</span>
       </div>
+
+      <div
+        v-if="isPomodoroEnabled && isPomodoroPanelVisible"
+        class="pomodoro-panel"
+        :class="{ compact: isCompactReader }"
+      >
+        <div class="pomodoro-header">
+          <div>
+            <p class="pomodoro-eyebrow">Pomodoro</p>
+            <h3>{{ pomodoroMode === 'focus' ? '专注阅读' : '休息时间' }}</h3>
+          </div>
+          <button type="button" class="pomodoro-close" @click="togglePomodoroPanel">关闭</button>
+        </div>
+        <div class="pomodoro-time">{{ pomodoroTimeLabel }}</div>
+        <div class="pomodoro-mode-switch">
+          <button
+            type="button"
+            :class="{ active: pomodoroMode === 'focus' }"
+            @click="switchPomodoroMode('focus')"
+          >
+            专注 {{ pomodoroConfig.focusMinutes }}m
+          </button>
+          <button
+            type="button"
+            :class="{ active: pomodoroMode === 'break' }"
+            @click="switchPomodoroMode('break')"
+          >
+            休息 {{ pomodoroConfig.breakMinutes }}m
+          </button>
+        </div>
+        <div class="pomodoro-actions">
+          <button v-if="!isPomodoroRunning" type="button" @click="startPomodoro">
+            {{ pomodoroRemainingSeconds > 0 ? '开始' : '重新开始' }}
+          </button>
+          <button v-else type="button" @click="pausePomodoro">暂停</button>
+          <button type="button" @click="resetPomodoro()">重置</button>
+        </div>
+        <div v-if="pomodoroRemainingSeconds === 0" class="pomodoro-done">
+          {{ pomodoroMode === 'focus' ? '本轮专注已完成，可以切换到休息。' : '休息结束，可以开始下一轮阅读。' }}
+        </div>
+      </div>
     </div>
 
     <div class="toolbar" :class="{ compact: isCompactReader }">
@@ -199,11 +240,21 @@
       <button
         type="button"
         class="tool-icon"
-        :disabled="isSummaryLoading"
-        title="总结"
-        @click="generateBookSummary"
+        :disabled="isAssistantLoading"
+        title="阅读助手"
+        @click="openAssistant"
       >
         <thought-icon />
+      </button>
+      <button
+        v-if="isPomodoroEnabled"
+        type="button"
+        class="tool-icon pomodoro-toggle"
+        :class="{ active: isPomodoroRunning }"
+        title="阅读番茄钟"
+        @click="togglePomodoroPanel"
+      >
+        {{ pomodoroShortLabel }}
       </button>
     </div>
 
@@ -227,40 +278,105 @@
     />
 
     <n-modal
-      :show="isSummaryVisible"
+      :show="isAssistantVisible"
       preset="card"
-      class="summary-modal"
-      :mask-closable="!isSummaryLoading"
-      :closable="!isSummaryLoading"
-      @update:show="value => { if (!value) closeSummary(); }"
+      class="assistant-modal"
+      :mask-closable="!isAssistantLoading"
+      :closable="false"
+      @update:show="value => { if (!value) closeAssistant(); }"
     >
-      <section class="summary-panel">
-        <header class="summary-header">
+      <section class="assistant-panel">
+        <header class="assistant-header">
           <div>
-            <p class="summary-eyebrow">AI Summary</p>
-            <h2>{{ bookInfo.title || '书籍总结' }}</h2>
-            <p v-if="summaryMeta" class="summary-subtitle">
-              已读取 {{ summaryMeta.includedSectionCount }} 个章节<span v-if="summaryMeta.truncated">，基于前 {{ summaryMeta.maxChars }} 字生成</span>
-            </p>
+            <p class="assistant-eyebrow">Reading Assistant</p>
+            <h2>{{ bookInfo.title || '阅读助手' }}</h2>
           </div>
-          <n-button
-            class="summary-close"
-            secondary
-            :disabled="isSummaryLoading"
-            @click="closeSummary"
-          >
-            关闭
-          </n-button>
+          <div class="assistant-header-actions">
+            <n-select
+              v-model:value="selectedReadingSkillId"
+              class="assistant-skill-select"
+              :options="readingSkillOptions"
+              :disabled="isAssistantLoading"
+              placeholder="选择读书 Skill"
+            />
+            <n-button
+              class="assistant-close"
+              secondary
+              :disabled="isAssistantLoading"
+              @click="closeAssistant"
+            >
+              关闭
+            </n-button>
+          </div>
         </header>
 
-        <div v-if="isSummaryLoading" class="summary-loading">
-          <n-spin size="medium" />
-          <span>正在提取内容并生成总结...</span>
+        <div class="assistant-messages">
+          <div v-if="assistantMessages.length === 0" class="assistant-empty">
+            <button type="button" @click="sendAssistantPrompt('为本章节生成总结')">
+              为本章节生成总结
+            </button>
+            <button type="button" @click="sendAssistantPrompt('为第二章生成总结')">
+              为第二章生成总结
+            </button>
+            <button type="button" @click="sendAssistantPrompt('提炼本章节的核心观点和金句')">
+              提炼本章节的核心观点和金句
+            </button>
+          </div>
+
+          <article
+            v-for="message in assistantMessages"
+            :key="message.id"
+            class="assistant-message"
+            :class="message.role"
+          >
+            <div class="assistant-message-role">
+              {{ message.role === 'user' ? '你' : '助手' }}
+            </div>
+            <div class="assistant-message-content markdown-preview" v-html="message.html"></div>
+            <div v-if="message.meta" class="assistant-message-meta">
+              {{ message.meta.sectionTitle }}<span v-if="message.meta.truncated">，基于前 {{ message.meta.maxChars }} 字</span>
+            </div>
+            <div v-if="message.role === 'assistant'" class="assistant-message-actions">
+              <n-button
+                size="small"
+                secondary
+                :disabled="message.noteSaved"
+                @click="saveAssistantMessageAsNote(message.id)"
+              >
+                {{ message.noteSaved ? '已保存为笔记' : '保存为笔记' }}
+              </n-button>
+            </div>
+          </article>
+
+          <div v-if="isAssistantLoading" class="assistant-loading">
+            <n-spin size="small" />
+            <span>正在读取章节并请求模型...</span>
+          </div>
+          <div v-if="assistantError" class="assistant-error">
+            {{ assistantError }}
+          </div>
         </div>
-        <div v-else-if="summaryError" class="summary-error">
-          {{ summaryError }}
+
+        <div class="assistant-composer">
+          <n-input
+            v-model:value="assistantDraft"
+            type="textarea"
+            class="assistant-input"
+            :autosize="{ minRows: 2, maxRows: 5 }"
+            placeholder="例如：为本章节生成总结 / 为第二章生成总结 / 提炼本章节的核心观点"
+            :disabled="isAssistantLoading"
+            @keydown="handleAssistantKeydown"
+          />
+          <n-button
+            type="primary"
+            class="assistant-send"
+            :loading="isAssistantLoading"
+            :disabled="!assistantDraft.trim() || isAssistantLoading"
+            @click="sendAssistantPrompt()"
+          >
+            发送
+          </n-button>
         </div>
-        <div v-else-if="summaryHtml" class="summary-content markdown-preview" v-html="summaryHtml"></div>
       </section>
     </n-modal>
   </div>
@@ -268,7 +384,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref, toRef } from 'vue';
-import { NButton, NModal, NSpin } from 'naive-ui';
+import { NButton, NInput, NModal, NSelect, NSpin } from 'naive-ui';
 import AIcon from "@/assets/svg/AIcon.vue";
 import DoubleColumnIcon from "@/assets/svg/DoubleColumnIcon.vue";
 import NextChapter from "@/assets/svg/NextChapter.vue";
@@ -307,11 +423,19 @@ const {
   visiblePageSlots,
   tocPageMap,
   showReaderControls,
-  isSummaryVisible,
-  isSummaryLoading,
-  summaryHtml,
-  summaryError,
-  summaryMeta,
+  isAssistantVisible,
+  isAssistantLoading,
+  assistantDraft,
+  assistantMessages,
+  assistantError,
+  readingSkills,
+  selectedReadingSkillId,
+  isPomodoroEnabled,
+  isPomodoroPanelVisible,
+  isPomodoroRunning,
+  pomodoroMode,
+  pomodoroRemainingSeconds,
+  pomodoroConfig,
   readerFontSize,
   readerLineHeight,
   annotationVisible,
@@ -322,8 +446,15 @@ const {
   goNext,
   toggleLayout,
   toggleReaderControls,
-  closeSummary,
-  generateBookSummary,
+  openAssistant,
+  closeAssistant,
+  sendAssistantPrompt,
+  saveAssistantMessageAsNote,
+  togglePomodoroPanel,
+  startPomodoro,
+  pausePomodoro,
+  resetPomodoro,
+  switchPomodoroMode,
   updateReaderFontSize,
   updateReaderLineHeight,
   resetReaderTypographySettings,
@@ -352,6 +483,24 @@ const isCompactReader = computed(() => isCompactViewport.value);
 const sidebarPanelStyle = computed(() => (
   isCompactReader.value ? undefined : { width: `${sidebarWidth.value}px` }
 ));
+const readingSkillOptions = computed(() => readingSkills.value.map(skill => ({
+  label: skill.name,
+  value: skill.id,
+})));
+const pomodoroTimeLabel = computed(() => {
+  const totalSeconds = Math.max(0, Number(pomodoroRemainingSeconds.value) || 0);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+});
+const pomodoroShortLabel = computed(() => {
+  const totalSeconds = Math.max(0, Number(pomodoroRemainingSeconds.value) || 0);
+  if (totalSeconds >= 3600) {
+    return `${Math.ceil(totalSeconds / 60)}m`;
+  }
+
+  return pomodoroTimeLabel.value;
+});
 
 function toggleSidebarDrawer() {
   if (!isCompactReader.value) {
@@ -405,6 +554,13 @@ function closeReaderControlsOnOutsidePointer(event) {
   }
 
   showReaderControls.value = false;
+}
+
+function handleAssistantKeydown(event) {
+  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+    event.preventDefault();
+    sendAssistantPrompt();
+  }
 }
 
 onMounted(() => {
@@ -898,6 +1054,13 @@ hr {
   line-height: 1;
 }
 
+.pomodoro-toggle {
+  padding: 0;
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
 .tool-icon:hover {
   color: var(--accent);
   border-color: var(--border-strong);
@@ -974,26 +1137,121 @@ hr {
   transform: translateX(-50%);
 }
 
-.summary-modal {
+.pomodoro-panel {
+  position: absolute;
+  right: 86px;
+  top: 50%;
+  z-index: 17;
+  width: 260px;
+  padding: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-elevated) 94%, transparent);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(12px);
+  transform: translateY(-50%);
+}
+
+.pomodoro-panel.compact {
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: 88px;
+  width: min(320px, calc(100% - 24px));
+  transform: translateX(-50%);
+}
+
+.pomodoro-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pomodoro-eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pomodoro-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.pomodoro-close {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.pomodoro-time {
+  margin: 18px 0 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.pomodoro-mode-switch,
+.pomodoro-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pomodoro-mode-switch button,
+.pomodoro-actions button {
+  min-height: 34px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.pomodoro-mode-switch button.active {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border-subtle));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.pomodoro-actions {
+  margin-top: 10px;
+}
+
+.pomodoro-done {
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.assistant-modal {
   width: min(860px, 82vw);
 }
 
-.summary-panel {
+.assistant-panel {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  min-height: 320px;
+  height: min(720px, 78vh);
   color: var(--text-primary);
 }
 
-.summary-header {
+.assistant-header {
   display: flex;
   justify-content: space-between;
   gap: 18px;
   align-items: flex-start;
 }
 
-.summary-eyebrow {
+.assistant-eyebrow {
   margin: 0 0 8px;
   font-size: 0.78rem;
   letter-spacing: 0.12em;
@@ -1001,49 +1259,130 @@ hr {
   color: var(--accent);
 }
 
-.summary-header h2 {
+.assistant-header h2 {
   margin: 0;
   font-size: 1.45rem;
   line-height: 1.2;
 }
 
-.summary-subtitle {
-  margin: 10px 0 0;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-.summary-close {
+.assistant-close {
   flex-shrink: 0;
 }
 
-.summary-loading,
-.summary-error {
-  flex: 1;
-  min-height: 220px;
+.assistant-header-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.assistant-skill-select {
+  width: min(260px, 34vw);
+}
+
+.assistant-messages {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+  padding: 14px;
   border: 1px dashed var(--border-subtle);
   border-radius: 16px;
-  color: var(--text-secondary);
   background: color-mix(in srgb, var(--surface-panel) 82%, transparent);
 }
 
-.summary-error {
-  color: #c05a5a;
-  text-align: center;
-  padding: 24px;
+.assistant-empty {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.summary-content {
-  max-height: min(64vh, 720px);
-  overflow: auto;
-  padding: 18px;
+.assistant-empty button {
+  min-height: 44px;
+  padding: 10px 12px;
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
+  border-radius: 12px;
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.35;
+}
+
+.assistant-empty button:hover {
+  color: var(--accent);
+  border-color: var(--border-strong);
+}
+
+.assistant-message {
+  width: min(100%, 720px);
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
   background: var(--surface-panel);
+}
+
+.assistant-message.user {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--accent-soft) 52%, var(--surface-panel));
+}
+
+.assistant-message.assistant {
+  align-self: flex-start;
+  background: var(--surface-elevated);
+}
+
+.assistant-message-role {
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.assistant-message-content {
+  color: var(--text-primary);
+}
+
+.assistant-message-meta {
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.assistant-message-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.assistant-loading,
+.assistant-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.assistant-error {
+  color: #c05a5a;
+}
+
+.assistant-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.assistant-input :deep(.n-input-wrapper) {
+  border-radius: 14px;
+}
+
+.assistant-send {
+  min-width: 76px;
+  min-height: 42px;
 }
 
 .markdown-preview * {
@@ -1124,12 +1463,27 @@ hr {
     gap: 8px;
   }
 
-  .summary-modal {
+  .assistant-modal {
     width: min(96vw, 860px);
   }
 
-  .summary-header {
+  .assistant-header {
     flex-direction: column;
+  }
+
+  .assistant-header-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .assistant-skill-select {
+    flex: 1;
+    width: auto;
+  }
+
+  .assistant-empty,
+  .assistant-composer {
+    grid-template-columns: 1fr;
   }
 }
 </style>

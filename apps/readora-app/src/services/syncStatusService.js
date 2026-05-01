@@ -29,14 +29,14 @@ export async function saveSyncStatus(status) {
 export function getSyncRecoveryHint(status = {}) {
   switch (status.errorCategory) {
     case 'auth':
-      return '请检查 WebDAV 用户名和密码，必要时重新保存配置后再同步。';
+      return '请检查 WebDav 用户名和密码，必要时重新保存配置后再同步。';
     case 'remote':
-      return '请检查远端目录权限和 WebDAV 路径；如果远端文件被手动修改，建议重新执行一次全量初始化同步。';
+      return '请检查远端目录权限和 WebDav 路径；如果远端文件被手动修改，建议重新执行一次全量初始化同步。';
     case 'network':
       return '请检查网络连接、代理或服务器可达性，然后重试同步。';
     default:
       return status.state === 'error'
-        ? '请先测试 WebDAV 连接；如果问题持续，建议检查远端文件是否损坏并重新初始化同步。'
+        ? '请先测试 WebDav 连接；如果问题持续，建议检查远端文件是否损坏并重新初始化同步。'
         : '';
   }
 }
