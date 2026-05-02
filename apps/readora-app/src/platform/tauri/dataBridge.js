@@ -12,12 +12,24 @@ export function saveBookRecord(book) {
   return invoke('save_book_record', { book });
 }
 
+export function updateBookMetadata(bookId, title, author) {
+  return invoke('update_book_metadata', { bookId, title, author });
+}
+
 export function saveReadingProgress(bookId, progress) {
   return invoke('save_reading_progress', { bookId, progress });
 }
 
 export function clearBookshelf() {
   return invoke('clear_bookshelf');
+}
+
+export function recordDailyReadingTime(entries) {
+  return invoke('record_daily_reading_time', { entries });
+}
+
+export function getRecentDailyReadingStats(limit) {
+  return invoke('get_recent_daily_reading_stats', { limit });
 }
 
 export function getAnnotations(bookId) {

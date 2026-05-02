@@ -5,6 +5,8 @@ import {
 
 export async function openReaderBookFlow({
   bookUrl,
+  initialLocation = null,
+  initialSectionIndex = null,
   view,
   readerBook,
   annotations,
@@ -18,9 +20,12 @@ export async function openReaderBookFlow({
   await readerBook.saveBookRecord();
   applyReaderStyles(view, readerStyleOptions);
   await view.init({
-    lastLocation: readerBook.readProgress.value?.cfi ?? null,
+    lastLocation: initialLocation || readerBook.readProgress.value?.cfi || null,
     showTextStart: true,
   });
+  if (!initialLocation && Number.isFinite(initialSectionIndex)) {
+    await view.goTo(initialSectionIndex);
+  }
   void viewport.buildPaginationIndex({
     bookUrl,
     readerStyleOptions,

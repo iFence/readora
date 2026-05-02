@@ -52,7 +52,7 @@ export function createReaderViewController({
     return view;
   }
 
-  async function openBook(bookUrl) {
+  async function openBook(bookUrl, options = {}) {
     if (!bookUrl || !viewerRef.value) {
       return;
     }
@@ -73,6 +73,8 @@ export function createReaderViewController({
       try {
         await openReaderBookFlow({
           bookUrl,
+          initialLocation: options.location || null,
+          initialSectionIndex: Number.isFinite(options.sectionIndex) ? options.sectionIndex : null,
           view,
           readerBook,
           annotations,

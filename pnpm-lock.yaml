@@ -40,6 +40,9 @@ importers:
       markdown-it:
         specifier: ^14.1.1
         version: 14.1.1
+      tippy.js:
+        specifier: ^6.3.7
+        version: 6.3.7
       vue:
         specifier: ^3.5.13
         version: 3.5.17
@@ -49,6 +52,9 @@ importers:
       vue-router:
         specifier: ^4.5.1
         version: 4.5.1(vue@3.5.17)
+      vue3-calendar-heatmap:
+        specifier: ^2.0.5
+        version: 2.0.5(tippy.js@6.3.7)(vue@3.5.17)
     devDependencies:
       '@tauri-apps/cli':
         specifier: ^2.0.0-rc.18
@@ -385,6 +391,9 @@ packages:
   '@napi-rs/canvas@0.1.99':
     resolution: {integrity: sha512-zN4eQlK3eBf7aJBcTHZilpBH3tDekBzPMIWC8r0s94Ecl73XfOyFi4w7yKFMRVUT0lvNQjtOL8YSrwqQj6mZFg==}
     engines: {node: '>= 10'}
+
+  '@popperjs/core@2.11.8':
+    resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
 
   '@rollup/plugin-node-resolve@15.3.1':
     resolution: {integrity: sha512-tgg6b91pAybXHJQMAAwW9VuWBO6Thi+q7BCNARLwSqlmsHz0XYURtGvh/AuwSADXSI4h/2uHbs7s4FzlZDGSGA==}
@@ -876,6 +885,9 @@ packages:
     resolution: {integrity: sha512-tX5e7OM1HnYr2+a2C/4V0htOcSQcoSTH9KgJnVvNm5zm/cyEWKJ7j7YutsH9CxMdtOkkLFy2AHrMci9IM8IPZQ==}
     engines: {node: '>=12.0.0'}
 
+  tippy.js@6.3.7:
+    resolution: {integrity: sha512-E1d3oP2emgJ9dRQZdf3Kkn0qJgI6ZLpyS5z6ZkY1DF3kaQaBsGZsndEpHwx+eC+tYM41HaSNvNtLx8tU57FzTQ==}
+
   treemate@0.3.11:
     resolution: {integrity: sha512-M8RGFoKtZ8dF+iwJfAJTOH/SM4KluKOKRJpjCMhI8bG3qB74zrFoArKZ62ll0Fr3mqkMJiQOmWYkdYgDeITYQg==}
 
@@ -947,6 +959,13 @@ packages:
     resolution: {integrity: sha512-ogAF3P97NPm8fJsE4by9dwSYtDwXIY1nFY9T6DyQnGHd1E2Da94w9JIolpe42LJGIl0DwOHBi8TcRPlPGwbTtw==}
     peerDependencies:
       vue: ^3.2.0
+
+  vue3-calendar-heatmap@2.0.5:
+    resolution: {integrity: sha512-qvveNQlTS5Aw7AvRLs0zOyu3uP5iGJlXJAnkrkG2ElDdyQ8H1TJhQ8rL702CROjAg16ezIveUY10nCO7lqZ25w==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      tippy.js: ^6.3.7
+      vue: ^3.2.29
 
   vue@3.5.17:
     resolution: {integrity: sha512-LbHV3xPN9BeljML+Xctq4lbz2lVHCR6DtbpTf5XIO6gugpXUN49j2QQPcMj086r9+AkJ0FfUT8xjulKKBkkr9g==}
@@ -1146,6 +1165,8 @@ snapshots:
       '@napi-rs/canvas-win32-arm64-msvc': 0.1.99
       '@napi-rs/canvas-win32-x64-msvc': 0.1.99
     optional: true
+
+  '@popperjs/core@2.11.8': {}
 
   '@rollup/plugin-node-resolve@15.3.1(rollup@4.45.1)':
     dependencies:
@@ -1630,6 +1651,10 @@ snapshots:
       fdir: 6.4.6(picomatch@4.0.3)
       picomatch: 4.0.3
 
+  tippy.js@6.3.7:
+    dependencies:
+      '@popperjs/core': 2.11.8
+
   treemate@0.3.11: {}
 
   uc.micro@2.1.0: {}
@@ -1668,6 +1693,11 @@ snapshots:
   vue-router@4.5.1(vue@3.5.17):
     dependencies:
       '@vue/devtools-api': 6.6.4
+      vue: 3.5.17
+
+  vue3-calendar-heatmap@2.0.5(tippy.js@6.3.7)(vue@3.5.17):
+    dependencies:
+      tippy.js: 6.3.7
       vue: 3.5.17
 
   vue@3.5.17:

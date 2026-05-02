@@ -1,5 +1,5 @@
 <template>
-  <div class="book-card flex" @click="goRead">
+  <div class="book-card flex" :class="{ 'has-edit-button': showEditButton }" @click="goRead">
     <slot>
       <img id="cover-img" :src="cover" alt="封面" />
       <div class="book-info flex flex-column text-ellipsis">
@@ -11,6 +11,15 @@
         </div>
       </div>
     </slot>
+    <button
+      v-if="showEditButton"
+      type="button"
+      class="book-card-edit"
+      :aria-label="editLabel"
+      @click.stop="handleEdit"
+    >
+      {{ editLabel }}
+    </button>
   </div>
 </template>
 
@@ -39,8 +48,17 @@ const props = defineProps({
   },
   url: {
     type: String
+  },
+  showEditButton: {
+    type: Boolean,
+    default: false,
+  },
+  editLabel: {
+    type: String,
+    default: 'Edit',
   }
 });
+const emit = defineEmits(['edit']);
 
 const progressPercent = computed(() => {
   const { progress } = props;
@@ -96,6 +114,10 @@ async function goRead() {
   if (!props.url) return;
   await navigateToReaderByUrl(props.url);
 }
+
+function handleEdit() {
+  emit('edit');
+}
 </script>
 
 <style scoped>
@@ -103,13 +125,14 @@ async function goRead() {
   flex: 1;
   width: 100%;
   min-width: 0;
-  min-height: 180px;
+  min-height: 156px;
+  position: relative;
   cursor: pointer;
   aspect-ratio: 16 / 9;
-  padding: 18px;
+  padding: 14px;
   border-radius: 18px;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   background-color: var(--surface-elevated);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-sm);
@@ -118,47 +141,73 @@ async function goRead() {
   img {
     aspect-ratio: 9 / 13;
     height: 100%;
-    max-height: 156px;
-    border-radius: 8px;
+    max-height: 128px;
     box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
     object-fit: cover;
   }
 
   .book-info {
     color: var(--text-primary);
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
 
     .title {
-      font-size: clamp(0.95rem, 2vw, 1.2rem);
+      font-size: clamp(0.92rem, 1.8vw, 1.08rem);
       font-weight: 600;
-      line-height: 1.4;
+      line-height: 1.32;
     }
 
     .author {
-      font-size: clamp(0.8rem, 1.4vw, 0.9rem);
+      font-size: clamp(0.78rem, 1.25vw, 0.86rem);
       color: var(--text-secondary);
     }
 
     .progress {
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       color: var(--accent);
       font-weight: 500;
     }
 
     .reading-time {
-      font-size: 0.8rem;
+      font-size: 0.76rem;
       color: var(--text-secondary);
     }
 
     .reading-meta {
       display: flex;
       align-items: center;
-      gap: 8px;
-      min-height: 1.2rem;
+      gap: 6px;
+      min-height: 1rem;
       white-space: nowrap;
     }
   }
+}
+
+.book-card.has-edit-button .book-info {
+  padding-right: 42px;
+}
+
+.book-card-edit {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  min-width: 38px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-panel) 92%, transparent);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.book-card-edit:hover {
+  color: var(--accent);
+  border-color: var(--border-strong);
+  background: var(--surface-elevated);
 }
 
 .book-card:hover {
@@ -171,12 +220,13 @@ async function goRead() {
   .book-card {
     aspect-ratio: auto;
     min-height: 0;
+    padding: 12px;
     align-items: flex-start;
   }
 
   .book-card img {
-    width: 74px;
-    height: 108px;
+    width: 66px;
+    height: 96px;
     max-height: none;
   }
 
@@ -194,6 +244,11 @@ async function goRead() {
   .book-card .book-info .reading-meta {
     flex-wrap: wrap;
     white-space: normal;
+  }
+
+  .book-card-edit {
+    right: 10px;
+    bottom: 10px;
   }
 }
 </style>

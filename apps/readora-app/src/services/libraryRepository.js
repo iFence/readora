@@ -1,10 +1,13 @@
 import { getBookKey, normalizeBookRecord, normalizeReadingProgress } from '@/entities/models.js';
 import {
   clearBookshelf as clearBookshelfData,
+  getRecentDailyReadingStats as getRecentDailyReadingStatsData,
   getBookById as getBookByIdData,
   listLatestBooks,
+  recordDailyReadingTime as recordDailyReadingTimeData,
   saveBookRecord as saveBookRecordData,
   saveReadingProgress as saveReadingProgressData,
+  updateBookMetadata as updateBookMetadataData,
 } from '@/platform/tauri/dataBridge.js';
 import {
   getStoreValue,
@@ -34,6 +37,22 @@ class LibraryRepository {
 
   clearLatestBooks() {
     return clearBookshelfData();
+  }
+
+  async recordDailyReadingTime(entries) {
+    const normalizedEntries = Array.isArray(entries)
+      ? entries.filter(entry => entry && entry.dateKey && Number.isFinite(entry.durationMs) && entry.durationMs > 0)
+      : [];
+    if (!normalizedEntries.length) {
+      return;
+    }
+
+    await recordDailyReadingTimeData(normalizedEntries);
+  }
+
+  async getRecentDailyReadingStats(limit) {
+    await ensureDataMigrated();
+    return getRecentDailyReadingStatsData(typeof limit === 'number' ? limit : null);
   }
 
   async getAllBooks() {
@@ -77,6 +96,11 @@ class LibraryRepository {
   async saveBookRecord(book) {
     await ensureDataMigrated();
     return saveBookRecordData(normalizeBookRecord(book));
+  }
+
+  async updateBookMetadata(bookId, title, author) {
+    await ensureDataMigrated();
+    return updateBookMetadataData(bookId, title, author);
   }
 
   async saveReadingProgress(bookId, progress) {

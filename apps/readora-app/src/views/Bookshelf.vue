@@ -3,7 +3,7 @@
     <div class="bookshelf-container">
       <n-tabs class="bookshelf-tabs" type="line" animated>
         <template #suffix>
-          <n-button quaternary circle @click="handleSync" :loading="syncing" title="同步书籍列表">
+          <n-button quaternary circle @click="handleSync" :loading="syncing" :title="t('bookshelf.actions.syncTitle')">
             <template #icon>
               <n-icon>
                 <sync-icon />
@@ -11,12 +11,12 @@
             </template>
           </n-button>
         </template>
-        <n-tab-pane name="书架" tab="书架" class="bookshelf-tab-pane">
+        <n-tab-pane name="bookshelf" :tab="t('bookshelf.tabs.bookshelf')" class="bookshelf-tab-pane">
           <div class="sync-status-card" :class="syncStatus.state">
             <div class="sync-status-head">
-              <strong>同步状态</strong>
+              <strong>{{ t('bookshelf.sync.title') }}</strong>
               <span v-if="syncStatus.lastSuccessAt" class="sync-status-time">
-                最近成功：{{ formatTime(syncStatus.lastSuccessAt) }}
+                {{ t('bookshelf.sync.lastSuccess') }}{{ formatTime(syncStatus.lastSuccessAt) }}
               </span>
             </div>
             <div class="sync-status-body">
@@ -47,16 +47,16 @@
                     <add-icon style="color: var(--text-color)" />
                   </div>
                   <div class="add-card-copy">
-                    <strong>导入新书</strong>
-                    <span>从本地文件继续扩充你的书架</span>
+                    <strong>{{ t('bookshelf.actions.importBook') }}</strong>
+                    <span>{{ t('bookshelf.actions.importHint') }}</span>
                   </div>
                 </div>
               </book-card>
             </div>
           </div>
         </n-tab-pane>
-        <n-tab-pane name="书单" tab="书单">
-          开发中...
+        <n-tab-pane name="lists" :tab="t('bookshelf.tabs.lists')">
+          {{ t('common.comingSoon') }}
         </n-tab-pane>
       </n-tabs>
     </div>
@@ -65,6 +65,7 @@
 
 <script setup>
 import { computed, onActivated, onMounted, onUnmounted, ref } from "vue";
+import { useI18n } from 'vue-i18n';
 import { NTabs, NTabPane, NButton, NIcon, useMessage } from 'naive-ui';
 import AddIcon from "@/assets/svg/AddIcon.vue";
 import SyncIcon from "@/assets/svg/SyncIcon.vue";
@@ -75,6 +76,7 @@ import { getSyncRecoveryHint, loadSyncStatus } from '@/services/syncStatusServic
 import { subscribeToSyncCompleted, syncLibrary } from '@/services/syncService.js';
 import { pickAndOpenBook } from '@/services/windowService.js';
 
+const { t } = useI18n();
 const message = useMessage();
 const latestBooks = ref([]);
 const syncing = ref(false);
@@ -100,16 +102,23 @@ function formatTime(value) {
 
 const syncSummary = computed(() => {
   if (syncStatus.value.state === 'error') {
-    return `同步失败 (${syncStatus.value.errorCategory || 'unknown'})`;
+    return t('bookshelf.sync.failed', {
+      category: syncStatus.value.errorCategory || 'unknown',
+    });
   }
 
   if (syncStatus.value.state === 'success') {
-    const modeLabel = syncStatus.value.mode === 'bootstrap' ? '全量初始化' : '增量同步';
-    const compactLabel = syncStatus.value.compacted ? '，已压缩远端快照' : '';
-    return `${modeLabel}完成，本地变更 ${syncStatus.value.localChangeCount} 条，远端变更 ${syncStatus.value.remoteChangeCount} 条${compactLabel}`;
+    return t('bookshelf.sync.success', {
+      mode: syncStatus.value.mode === 'bootstrap'
+        ? t('bookshelf.sync.bootstrap')
+        : t('bookshelf.sync.incremental'),
+      local: syncStatus.value.localChangeCount,
+      remote: syncStatus.value.remoteChangeCount,
+      compacted: syncStatus.value.compacted ? t('bookshelf.sync.compacted') : '',
+    });
   }
 
-  return '尚未执行同步';
+  return t('bookshelf.sync.idle');
 });
 
 const syncHint = computed(() => getSyncRecoveryHint(syncStatus.value));
@@ -152,10 +161,14 @@ async function handleSync() {
     const { books, status } = await syncLibrary();
     latestBooks.value = books;
     syncStatus.value = status;
-    message.success(status.mode === 'bootstrap' ? '初始化同步成功' : '同步成功');
+    message.success(
+      status.mode === 'bootstrap'
+        ? t('bookshelf.messages.syncBootstrapSuccess')
+        : t('bookshelf.messages.syncSuccess')
+    );
   } catch (error) {
     syncStatus.value = error?.syncStatus || await loadSyncStatus();
-    message.error('同步失败: ' + error.message);
+    message.error(t('bookshelf.messages.syncFailed', { reason: error.message }));
   } finally {
     syncing.value = false;
   }

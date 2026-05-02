@@ -1,6 +1,7 @@
 mod commands;
 mod database;
 mod desktop;
+mod epub_metadata;
 mod state;
 
 use std::{env, sync::Arc};
@@ -11,9 +12,10 @@ use tauri_plugin_log::{Target, TargetKind};
 
 use crate::commands::data::{
     clear_bookshelf, delete_bookmark, export_sync_snapshot, get_annotations, get_book_by_id,
-    get_bookmarks, get_last_sync_at, get_latest_books, import_sync_snapshot, replace_annotations,
-    save_book_record, save_reading_progress, upsert_annotation, upsert_bookmark, delete_annotation,
-    set_last_sync_at,
+    get_bookmarks, get_last_sync_at, get_latest_books, get_recent_daily_reading_stats,
+    import_sync_snapshot, record_daily_reading_time, replace_annotations, save_book_record,
+    save_reading_progress, set_last_sync_at, update_book_metadata, upsert_annotation,
+    upsert_bookmark, delete_annotation,
 };
 use crate::commands::system::{exit_app, open_external_url};
 use crate::commands::startup::{capture_startup_file_path, get_startup_file_path};
@@ -46,8 +48,11 @@ pub fn run() {
             get_latest_books,
             get_book_by_id,
             save_book_record,
+            update_book_metadata,
             save_reading_progress,
             clear_bookshelf,
+            record_daily_reading_time,
+            get_recent_daily_reading_stats,
             get_annotations,
             replace_annotations,
             upsert_annotation,

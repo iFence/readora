@@ -402,6 +402,18 @@ const props = defineProps({
     type: String,
     required: true
   },
+  sourcePath: {
+    type: String,
+    default: '',
+  },
+  location: {
+    type: String,
+    default: '',
+  },
+  sectionIndex: {
+    type: Number,
+    default: null,
+  },
 });
 
 const viewer = ref(null);
@@ -409,6 +421,10 @@ const readerControlsPanel = ref(null);
 const readerControlsToggle = ref(null);
 const activeSidebarTab = ref('menu');
 const isSidebarDrawerOpen = ref(false);
+const initialReaderTarget = computed(() => ({
+  location: props.location || '',
+  sectionIndex: Number.isFinite(props.sectionIndex) ? props.sectionIndex : null,
+}));
 const {
   bookInfo,
   bookDetail,
@@ -477,7 +493,12 @@ const {
   toggleCurrentBookmark,
   deleteBookmark,
   goToBookmark,
-} = useReaderSession(toRef(props, 'bookUrl'), viewer);
+} = useReaderSession(
+  toRef(props, 'bookUrl'),
+  viewer,
+  initialReaderTarget,
+  toRef(props, 'sourcePath'),
+);
 
 const isCompactReader = computed(() => isCompactViewport.value);
 const sidebarPanelStyle = computed(() => (
@@ -934,7 +955,6 @@ onUnmounted(() => {
 
 #cover-image {
   width: 72px;
-  border-radius: 5px;
   object-fit: cover;
   aspect-ratio: 9/13;
   box-shadow: var(--shadow-sm);

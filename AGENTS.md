@@ -12,6 +12,7 @@
 - Default to platform-neutral solutions first.
 - Prefer existing solutions over custom implementations: check Tauri official plugins first, then active and well-maintained third-party dependencies, and only build in-house when existing options are not a good fit.
 - Do not introduce Windows-only, macOS-only, or Linux-only assumptions into shared code unless there is no practical alternative.
+- For frontend work, if the user does not explicitly request a new visual direction, keep the visual style consistent with the existing product. New pages, panels, cards, spacing, typography, and interaction states should feel like part of the same application rather than a separate design language.
 - If platform-specific behavior is required, isolate it behind a narrow adapter or native boundary.
 - Keep refactors behavior-compatible unless the task explicitly includes a product change.
 - Read the surrounding code before editing and preserve existing conventions unless they conflict with cross-platform safety or maintainability.

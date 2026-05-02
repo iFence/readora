@@ -5,7 +5,7 @@ import {
   resolveBookCoverAssets,
 } from '@/features/reader/readerBookRecord.js';
 
-export function useReaderBookState(bookUrlRef) {
+export function useReaderBookState(bookUrlRef, sourcePathRef = null) {
   const bookInfo = ref({});
   const bookDetail = ref(null);
   const readProgress = ref(null);
@@ -49,6 +49,7 @@ export function useReaderBookState(bookUrlRef) {
 
     bookInfo.value = createBookRecord({
       bookUrl: bookUrlRef.value,
+      sourcePath: sourcePathRef?.value || existingBook?.sourcePath || null,
       metadata,
       progress: readProgress.value,
       coverBase64,

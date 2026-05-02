@@ -32,7 +32,10 @@ export const constantRoutes = [
         component: () => import("@/views/EpubViewer.vue"),
         name: 'reader',
         props: (route) =>({
-            bookUrl: route.query.bookUrl
+            bookUrl: route.query.bookUrl,
+            sourcePath: route.query.sourcePath || '',
+            location: route.query.location || '',
+            sectionIndex: route.query.sectionIndex ? Number(route.query.sectionIndex) : null,
         }),
     },
     {

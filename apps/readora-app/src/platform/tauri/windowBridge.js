@@ -19,6 +19,7 @@ export function createReaderRoute(filePath) {
     path: '/reader',
     query: {
       bookUrl: convertFileSrc(filePath),
+      sourcePath: filePath,
     },
   };
 }

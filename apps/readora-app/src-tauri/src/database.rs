@@ -38,12 +38,27 @@ pub struct ReadingProgress {
 pub struct BookRecord {
     pub identifier: Option<String>,
     pub book_url: Option<String>,
+    pub source_path: Option<String>,
     pub title: Option<String>,
     pub author: Option<String>,
     pub cover: Option<String>,
     pub open_time: Option<i64>,
     pub total_reading_time_ms: Option<i64>,
     pub progress: Option<ReadingProgress>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct DailyReadingTimeInput {
+    pub date_key: String,
+    pub duration_ms: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct DailyReadingStat {
+    pub date_key: String,
+    pub duration_ms: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -158,6 +173,7 @@ impl Database {
                 b.book_id,
                 b.identifier,
                 b.book_url,
+                b.source_path,
                 b.title,
                 b.author,
                 b.cover,
@@ -201,6 +217,7 @@ impl Database {
                     b.book_id,
                     b.identifier,
                     b.book_url,
+                    b.source_path,
                     b.title,
                     b.author,
                     b.cover,
@@ -233,12 +250,13 @@ impl Database {
 
             tx.execute(
                 "INSERT INTO books (
-                    book_id, identifier, book_url, title, author, cover,
+                    book_id, identifier, book_url, source_path, title, author, cover,
                     open_time, total_reading_time_ms, is_archived, updated_at, deleted_at
-                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0, ?9, NULL)
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 0, ?10, NULL)
                 ON CONFLICT(book_id) DO UPDATE SET
                     identifier = excluded.identifier,
                     book_url = excluded.book_url,
+                    source_path = excluded.source_path,
                     title = excluded.title,
                     author = excluded.author,
                     cover = excluded.cover,
@@ -251,6 +269,7 @@ impl Database {
                     book_id,
                     book.identifier,
                     book.book_url,
+                    book.source_path,
                     book.title,
                     book.author,
                     book.cover,
@@ -271,6 +290,52 @@ impl Database {
 
         self.get_book_by_id(&book_id)?
             .ok_or_else(|| "Saved book could not be reloaded.".to_string())
+    }
+
+    pub fn update_book_metadata(
+        &self,
+        book_id: &str,
+        title: &str,
+        author: &str,
+    ) -> Result<BookRecord, String> {
+        let normalized_title = title.trim();
+        let normalized_author = author.trim();
+        if normalized_title.is_empty() || normalized_author.is_empty() {
+            return Err("Title and author are required.".to_string());
+        }
+
+        let book = self
+            .get_book_by_id(book_id)?
+            .ok_or_else(|| "Book not found.".to_string())?;
+        let source_path = book
+            .source_path
+            .clone()
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| "This book does not have an editable EPUB source path yet.".to_string())?;
+
+        let source_path = PathBuf::from(source_path);
+        crate::epub_metadata::overwrite_epub_metadata(
+            source_path.as_path(),
+            normalized_title,
+            normalized_author,
+        )?;
+
+        let now = now_ts();
+        let connection = self.connection()?;
+        connection
+            .execute(
+                "UPDATE books
+                SET title = ?2,
+                    author = ?3,
+                    updated_at = ?4,
+                    deleted_at = NULL
+                WHERE book_id = ?1",
+                params![book_id, normalized_title, normalized_author, now],
+            )
+            .map_err(|error| format!("Failed to update saved book metadata: {}", error))?;
+
+        self.get_book_by_id(book_id)?
+            .ok_or_else(|| "Updated book could not be reloaded.".to_string())
     }
 
     pub fn save_reading_progress(
@@ -308,6 +373,70 @@ impl Database {
             )
             .map_err(|error| format!("Failed to clear bookshelf: {}", error))?;
         Ok(())
+    }
+
+    pub fn record_daily_reading_time(
+        &self,
+        entries: Vec<DailyReadingTimeInput>,
+    ) -> Result<(), String> {
+        let now = now_ts();
+        let mut connection = self.connection()?;
+        let tx = connection
+            .transaction()
+            .map_err(|error| format!("Failed to start daily reading stats transaction: {}", error))?;
+
+        for entry in entries {
+            let date_key = entry.date_key.trim();
+            if date_key.is_empty() || entry.duration_ms <= 0 {
+                continue;
+            }
+
+            tx.execute(
+                "INSERT INTO daily_reading_stats (date_key, duration_ms, updated_at)
+                VALUES (?1, ?2, ?3)
+                ON CONFLICT(date_key) DO UPDATE SET
+                    duration_ms = daily_reading_stats.duration_ms + excluded.duration_ms,
+                    updated_at = excluded.updated_at",
+                params![date_key, entry.duration_ms, now],
+            )
+            .map_err(|error| format!("Failed to record daily reading stats: {}", error))?;
+        }
+
+        tx.commit()
+            .map_err(|error| format!("Failed to commit daily reading stats transaction: {}", error))
+    }
+
+    pub fn get_recent_daily_reading_stats(
+        &self,
+        limit: Option<usize>,
+    ) -> Result<Vec<DailyReadingStat>, String> {
+        let connection = self.connection()?;
+        let capped_limit = limit.unwrap_or(120).max(1);
+        let mut statement = connection
+            .prepare(
+                "SELECT date_key, duration_ms
+                FROM daily_reading_stats
+                ORDER BY date_key DESC
+                LIMIT ?1",
+            )
+            .map_err(|error| format!("Failed to prepare daily reading stats query: {}", error))?;
+
+        let rows = statement
+            .query_map(params![capped_limit], |row| {
+                Ok(DailyReadingStat {
+                    date_key: row.get(0)?,
+                    duration_ms: row.get(1)?,
+                })
+            })
+            .map_err(|error| format!("Failed to fetch daily reading stats: {}", error))?;
+
+        let mut stats = Vec::new();
+        for row in rows {
+            stats.push(row.map_err(|error| format!("Failed to decode daily reading stat row: {}", error))?);
+        }
+        stats.reverse();
+
+        Ok(stats)
     }
 
     pub fn get_annotations(&self, book_id: &str) -> Result<Vec<AnnotationRecord>, String> {
@@ -864,6 +993,7 @@ fn initialize_schema(connection: &Connection) -> Result<(), String> {
                 book_id TEXT PRIMARY KEY,
                 identifier TEXT,
                 book_url TEXT,
+                source_path TEXT,
                 title TEXT,
                 author TEXT,
                 cover TEXT,
@@ -910,12 +1040,20 @@ fn initialize_schema(connection: &Connection) -> Result<(), String> {
                 updated_at INTEGER NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS daily_reading_stats (
+                date_key TEXT PRIMARY KEY,
+                duration_ms INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS idx_books_active_open_time
                 ON books (is_archived, deleted_at, open_time DESC);
             CREATE INDEX IF NOT EXISTS idx_annotations_book_id
                 ON annotations (book_id, deleted_at, chapter_index);
             CREATE INDEX IF NOT EXISTS idx_bookmarks_book_id
                 ON bookmarks (book_id, deleted_at, chapter_index);
+            CREATE INDEX IF NOT EXISTS idx_daily_reading_stats_date_key
+                ON daily_reading_stats (date_key DESC);
             ",
         )
         .map_err(|error| format!("Failed to initialize database schema: {}", error))?;
@@ -930,6 +1068,18 @@ fn initialize_schema(connection: &Connection) -> Result<(), String> {
         Err(error) => {
             return Err(format!(
                 "Failed to ensure total_reading_time_ms column exists: {}",
+                error
+            ))
+        }
+    }
+
+    match connection.execute("ALTER TABLE books ADD COLUMN source_path TEXT", []) {
+        Ok(_) => {}
+        Err(rusqlite::Error::SqliteFailure(error, _))
+            if error.extended_code == rusqlite::ffi::SQLITE_ERROR => {}
+        Err(error) => {
+            return Err(format!(
+                "Failed to ensure source_path column exists: {}",
                 error
             ))
         }
@@ -955,7 +1105,7 @@ fn now_ts() -> i64 {
 }
 
 fn map_book_record_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<BookRecord> {
-    let progress_json: Option<String> = row.get(8)?;
+    let progress_json: Option<String> = row.get(9)?;
     let progress = progress_json
         .as_deref()
         .and_then(|value| serde_json::from_str::<ReadingProgress>(value).ok());
@@ -963,11 +1113,12 @@ fn map_book_record_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<BookRecord> 
     Ok(BookRecord {
         identifier: row.get(1)?,
         book_url: row.get(2)?,
-        title: row.get(3)?,
-        author: row.get(4)?,
-        cover: row.get(5)?,
-        open_time: row.get(6)?,
-        total_reading_time_ms: row.get(7)?,
+        source_path: row.get(3)?,
+        title: row.get(4)?,
+        author: row.get(5)?,
+        cover: row.get(6)?,
+        open_time: row.get(7)?,
+        total_reading_time_ms: row.get(8)?,
         progress,
     })
 }
@@ -1097,6 +1248,7 @@ mod tests {
             .save_book_record(BookRecord {
                 identifier: Some(book_id.clone()),
                 book_url: Some("file:///book.epub".to_string()),
+                source_path: Some("/tmp/book.epub".to_string()),
                 title: Some("Book".to_string()),
                 author: Some("Author".to_string()),
                 cover: None,
@@ -1176,6 +1328,7 @@ mod tests {
             .save_book_record(BookRecord {
                 identifier: Some(book_id.clone()),
                 book_url: Some("file:///book3.epub".to_string()),
+                source_path: Some("/tmp/book3.epub".to_string()),
                 title: Some("Newest Title".to_string()),
                 author: Some("Author".to_string()),
                 cover: None,
@@ -1217,5 +1370,37 @@ mod tests {
             .expect("book exists");
 
         assert_eq!(reloaded.title.as_deref(), Some("Newest Title"));
+    }
+
+    #[test]
+    fn aggregates_and_reads_daily_reading_stats() {
+        let database = create_test_database();
+
+        database
+            .record_daily_reading_time(vec![
+                DailyReadingTimeInput {
+                    date_key: "2026-04-28".to_string(),
+                    duration_ms: 15 * 60 * 1000,
+                },
+                DailyReadingTimeInput {
+                    date_key: "2026-04-28".to_string(),
+                    duration_ms: 5 * 60 * 1000,
+                },
+                DailyReadingTimeInput {
+                    date_key: "2026-04-29".to_string(),
+                    duration_ms: 45 * 60 * 1000,
+                },
+            ])
+            .expect("record stats");
+
+        let stats = database
+            .get_recent_daily_reading_stats(Some(10))
+            .expect("read stats");
+
+        assert_eq!(stats.len(), 2);
+        assert_eq!(stats[0].date_key, "2026-04-28");
+        assert_eq!(stats[0].duration_ms, 20 * 60 * 1000);
+        assert_eq!(stats[1].date_key, "2026-04-29");
+        assert_eq!(stats[1].duration_ms, 45 * 60 * 1000);
     }
 }

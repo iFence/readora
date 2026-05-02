@@ -3,7 +3,8 @@ use std::sync::Arc;
 use tauri::State;
 
 use crate::database::{
-    AnnotationRecord, BookRecord, BookmarkRecord, Database, ReadingProgress, SyncSnapshot,
+    AnnotationRecord, BookRecord, BookmarkRecord, DailyReadingStat, DailyReadingTimeInput,
+    Database, ReadingProgress, SyncSnapshot,
 };
 
 #[tauri::command]
@@ -31,6 +32,16 @@ pub fn save_book_record(
 }
 
 #[tauri::command]
+pub fn update_book_metadata(
+    database: State<'_, Arc<Database>>,
+    book_id: String,
+    title: String,
+    author: String,
+) -> Result<BookRecord, String> {
+    database.update_book_metadata(&book_id, &title, &author)
+}
+
+#[tauri::command]
 pub fn save_reading_progress(
     database: State<'_, Arc<Database>>,
     book_id: String,
@@ -42,6 +53,22 @@ pub fn save_reading_progress(
 #[tauri::command]
 pub fn clear_bookshelf(database: State<'_, Arc<Database>>) -> Result<(), String> {
     database.clear_bookshelf()
+}
+
+#[tauri::command]
+pub fn record_daily_reading_time(
+    database: State<'_, Arc<Database>>,
+    entries: Vec<DailyReadingTimeInput>,
+) -> Result<(), String> {
+    database.record_daily_reading_time(entries)
+}
+
+#[tauri::command]
+pub fn get_recent_daily_reading_stats(
+    database: State<'_, Arc<Database>>,
+    limit: Option<usize>,
+) -> Result<Vec<DailyReadingStat>, String> {
+    database.get_recent_daily_reading_stats(limit)
 }
 
 #[tauri::command]

@@ -10,6 +10,7 @@
  * @typedef {Object} BookRecord
  * @property {string=} identifier
  * @property {string=} bookUrl
+ * @property {string=} sourcePath
  * @property {string=} title
  * @property {string=} author
  * @property {string=} cover
@@ -93,6 +94,7 @@ export function normalizeBookRecord(book = {}) {
   return {
     identifier: book.identifier || null,
     bookUrl: book.bookUrl || null,
+    sourcePath: book.sourcePath || null,
     title: book.title || null,
     author: book.author || null,
     cover: book.cover || null,

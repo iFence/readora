@@ -21,7 +21,42 @@ import {
   loadPomodoroConfig,
 } from '@/services/pomodoroPluginService.js';
 
-export function useReaderSession(bookUrlRef, viewerRef) {
+function formatLocalDateKey(timestamp) {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function splitReadingDurationByDay(startTimestamp, endTimestamp) {
+  if (!Number.isFinite(startTimestamp) || !Number.isFinite(endTimestamp) || endTimestamp <= startTimestamp) {
+    return [];
+  }
+
+  const buckets = [];
+  let cursor = startTimestamp;
+
+  while (cursor < endTimestamp) {
+    const currentDate = new Date(cursor);
+    const nextDay = new Date(currentDate);
+    nextDay.setHours(24, 0, 0, 0);
+
+    const segmentEnd = Math.min(endTimestamp, nextDay.getTime());
+    const durationMs = segmentEnd - cursor;
+    if (durationMs > 0) {
+      buckets.push({
+        dateKey: formatLocalDateKey(cursor),
+        durationMs,
+      });
+    }
+    cursor = segmentEnd;
+  }
+
+  return buckets;
+}
+
+export function useReaderSession(bookUrlRef, viewerRef, initialTargetRef = null, sourcePathRef = null) {
   const foliateView = ref(null);
   const currentLocation = ref(null);
   const { currentTheme } = useThemeService();
@@ -35,7 +70,7 @@ export function useReaderSession(bookUrlRef, viewerRef) {
     resetReaderTypography,
   } = useReaderSettingsService();
   const selection = useReaderSelection();
-  const readerBook = useReaderBookState(bookUrlRef);
+  const readerBook = useReaderBookState(bookUrlRef, sourcePathRef);
   const viewport = useReaderViewport({ foliateView, currentLocation });
   const annotations = useReaderAnnotations({ foliateView, bookDetail: readerBook.bookDetail, selection });
   const bookmarks = useReaderBookmarks({ bookDetail: readerBook.bookDetail, currentLocation, foliateView });
@@ -204,7 +239,9 @@ export function useReaderSession(bookUrlRef, viewerRef) {
       return;
     }
 
-    const elapsedMs = Date.now() - readingSessionStartedAt;
+    const sessionStartedAt = readingSessionStartedAt;
+    const sessionEndedAt = Date.now();
+    const elapsedMs = sessionEndedAt - sessionStartedAt;
     readingSessionStartedAt = 0;
     if (elapsedMs < 1000) {
       return;
@@ -222,7 +259,12 @@ export function useReaderSession(bookUrlRef, viewerRef) {
     };
 
     readerBook.bookInfo.value = nextBookRecord;
-    await libraryRepository.saveBookRecord(nextBookRecord);
+    await Promise.all([
+      libraryRepository.saveBookRecord(nextBookRecord),
+      libraryRepository.recordDailyReadingTime(
+        splitReadingDurationByDay(sessionStartedAt, sessionEndedAt),
+      ),
+    ]);
 
     if (restartSession) {
       markReadingSessionStart();
@@ -398,7 +440,7 @@ export function useReaderSession(bookUrlRef, viewerRef) {
 
   onMounted(async () => {
     await initializeReaderSettings();
-    await viewController.openBook(bookUrlRef.value);
+    await viewController.openBook(bookUrlRef.value, initialTargetRef?.value || {});
     await refreshPomodoroPlugin();
     markReadingSessionStart();
     startReadingDurationFlushLoop();
@@ -407,12 +449,15 @@ export function useReaderSession(bookUrlRef, viewerRef) {
     document.addEventListener('visibilitychange', handleVisibilityChange);
   });
 
-  watch(bookUrlRef, async newUrl => {
-    if (newUrl) {
-      await flushReadingDuration();
-      await viewController.openBook(newUrl);
-      markReadingSessionStart();
+  watch([bookUrlRef, initialTargetRef || ref(null)], async ([newUrl, nextTarget], [previousUrl, previousTarget]) => {
+    const targetChanged = JSON.stringify(nextTarget || {}) !== JSON.stringify(previousTarget || {});
+    if (!newUrl || (newUrl === previousUrl && !targetChanged)) {
+      return;
     }
+
+    await flushReadingDuration();
+    await viewController.openBook(newUrl, nextTarget || {});
+    markReadingSessionStart();
   });
 
   watch([currentTheme, forceReaderTextColor, readerFontSize, readerLineHeight], () => {

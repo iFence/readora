@@ -55,9 +55,17 @@ function normalizeMetadataText(value) {
   return String(value);
 }
 
-export function createBookRecord({ bookUrl, metadata, progress, coverBase64, totalReadingTimeMs = 0 }) {
+export function createBookRecord({
+  bookUrl,
+  sourcePath = null,
+  metadata,
+  progress,
+  coverBase64,
+  totalReadingTimeMs = 0,
+}) {
   return {
     bookUrl,
+    sourcePath,
     author: normalizeMetadataText(metadata.author),
     title: normalizeMetadataText(metadata.title),
     cover: coverBase64,

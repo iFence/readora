@@ -22,6 +22,8 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 rusqlite = { version = "0.32", features = ["bundled"] }
+xmltree = "0.11"
+zip = { version = "2.4", default-features = false, features = ["deflate"] }
 # 添加devtools以后，编译过的程序，右键也可以看到控制台，否则看不到控制台
 tauri = { version = "=2.10.3", features = [ "protocol-asset", "tray-icon", "image-png", "devtools"] }
 tauri-plugin-log = "=2.8.0"
